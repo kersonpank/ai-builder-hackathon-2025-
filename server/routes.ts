@@ -549,18 +549,25 @@ Tom de voz: ${toneInstructions[agent?.toneOfVoice as keyof typeof toneInstructio
 
 ${agent?.customInstructions ? `Instruções adicionais: ${agent.customInstructions}` : ''}
 
-Você tem acesso ao catálogo de produtos da empresa. Quando o cliente demonstrar interesse em produtos, recomende opções relevantes do catálogo.
+IMPORTANTE - Estilo de comunicação:
+- Use textos curtos e humanizados (máximo 2-3 frases por vez)
+- Seja natural e conversacional, não formal demais
+- Quando recomendar produtos, mencione EXATAMENTE o nome do produto como aparece no catálogo
+- Use emojis de forma moderada para dar personalidade
 
-Seu objetivo é:
-1. Atender o cliente de forma personalizada
-2. Recomendar produtos que atendam suas necessidades
-3. Ajudar a fechar vendas
-4. Fornecer informações sobre produtos, preços e disponibilidade
+Você tem acesso ao catálogo de produtos da empresa. Quando mencionar um produto específico, diga algo como:
+"Olha só esse [NOME DO PRODUTO]! 😍" ou "Te recomendo o [NOME DO PRODUTO]!"
 
 Catálogo disponível (${activeProducts.length} produtos):
-${activeProducts.slice(0, 10).map(p => `- ${p.name}: R$ ${(p.price / 100).toFixed(2)}${p.description ? ` - ${p.description}` : ''}`).join('\n')}
+${activeProducts.slice(0, 20).map(p => `- [${p.name}]: R$ ${(p.price / 100).toFixed(2)}${p.description ? ` - ${p.description.substring(0, 100)}` : ''}`).join('\n')}
 
-Quando recomendar produtos, mencione apenas o nome e preço. O sistema irá exibir os cards de produto automaticamente.`;
+REGRA CRÍTICA: Quando mencionar um produto, use o nome EXATO entre colchetes [NOME DO PRODUTO] para que o sistema possa exibir a imagem automaticamente.
+
+Seu objetivo é:
+1. Atender o cliente de forma personalizada e natural
+2. Recomendar produtos que atendam suas necessidades  
+3. Ajudar a fechar vendas de forma consultiva
+4. Fornecer informações sobre produtos, preços e disponibilidade`;
 
       // Get conversation history
       const messages = await storage.getMessagesByConversation(conversationId);
@@ -583,12 +590,32 @@ Quando recomendar produtos, mencione apenas o nome e preço. O sistema irá exib
 
       const assistantMessage = completion.choices[0].message.content || "Desculpe, não consegui processar sua mensagem.";
 
-      // Save assistant message
+      // Detect products mentioned in the response using [Product Name] format
+      const productRegex = /\[([^\]]+)\]/g;
+      const matches = [...assistantMessage.matchAll(productRegex)];
+      const mentionedProductNames = matches.map(m => m[1].trim());
+      
+      // Find matching products and get their first image
+      const productImages: Array<{name: string, imageUrl: string | null, hasMore: boolean}> = [];
+      for (const productName of mentionedProductNames) {
+        const product = activeProducts.find(p => 
+          p.name.toLowerCase() === productName.toLowerCase()
+        );
+        if (product && product.imageUrls && product.imageUrls.length > 0) {
+          productImages.push({
+            name: product.name,
+            imageUrl: product.imageUrls[0],
+            hasMore: product.imageUrls.length > 1
+          });
+        }
+      }
+
+      // Save assistant message with product images metadata
       const savedMessage = await storage.createMessage({
         conversationId,
         role: 'assistant',
         content: assistantMessage,
-        metadata: null,
+        metadata: productImages.length > 0 ? { productImages } : null,
       });
 
       // Update conversation timestamp
