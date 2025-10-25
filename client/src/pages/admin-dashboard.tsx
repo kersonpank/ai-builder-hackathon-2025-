@@ -126,7 +126,7 @@ export default function AdminDashboard() {
                 <TableRow>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Segmento</TableHead>
-                  <TableHead>CNPJ</TableHead>
+                  <TableHead>CPF/CNPJ</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -136,7 +136,7 @@ export default function AdminDashboard() {
                   <TableRow key={company.id}>
                     <TableCell className="font-medium">{company.name}</TableCell>
                     <TableCell>{company.segment}</TableCell>
-                    <TableCell className="font-mono text-sm">{company.cnpj}</TableCell>
+                    <TableCell className="font-mono text-sm">{company.cpfCnpj}</TableCell>
                     <TableCell>{getStatusBadge(company.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
