@@ -49,6 +49,21 @@ const documentUpload = multer({
   }
 });
 
+// Configure multer for ChatWeb (images + audio)
+const chatWebUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit (Whisper max)
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/', 'audio/', 'video/webm'];
+    const isAllowed = allowedTypes.some(type => file.mimetype.startsWith(type) || file.mimetype === 'video/webm');
+    if (isAllowed) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas imagens e áudio são permitidos'));
+    }
+  }
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // ============ PUBLIC FILE SERVING ============
@@ -721,11 +736,16 @@ ${extractedText.substring(0, 15000)}`;
     }
   });
 
-  // Send message and get AI response (public)
-  app.post("/api/chatweb/:companyId/conversations/:conversationId/messages", async (req, res) => {
+  // Send message and get AI response (public) with image and audio support
+  app.post("/api/chatweb/:companyId/conversations/:conversationId/messages", 
+    chatWebUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'audio', maxCount: 1 }]),
+    async (req, res) => {
     try {
       const { companyId, conversationId } = req.params;
-      const { content } = z.object({ content: z.string() }).parse(req.body);
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const imageFile = files?.image?.[0];
+      const audioFile = files?.audio?.[0];
+      let content = req.body.content || '';
 
       // Verify conversation belongs to this company (security check)
       const conversation = await storage.getConversation(conversationId);
@@ -733,11 +753,53 @@ ${extractedText.substring(0, 15000)}`;
         return res.status(403).json({ error: "Conversa não pertence a esta empresa" });
       }
 
+      // Process image if uploaded
+      let imageContext = '';
+      if (imageFile) {
+        const { ObjectStorageService } = await import('./objectStorage');
+        const objectStorage = new ObjectStorageService();
+        const imageUrl = await objectStorage.uploadToPublicStorage(
+          imageFile.buffer, 
+          `chatweb/images/${Date.now()}-${imageFile.originalname}`,
+          imageFile.mimetype
+        );
+        imageContext = `\n\n[O cliente enviou uma imagem: ${imageUrl}]\nPor favor, analise a imagem e responda de acordo.`;
+      }
+
+      // Process audio if uploaded - transcribe with Whisper
+      let audioTranscription = '';
+      if (audioFile) {
+        try {
+          const fs = await import('fs');
+          const path = await import('path');
+          const tmpPath = path.join('/tmp', `audio-${Date.now()}.webm`);
+          fs.writeFileSync(tmpPath, audioFile.buffer);
+          
+          const transcription = await openai.audio.transcriptions.create({
+            file: fs.createReadStream(tmpPath),
+            model: "whisper-1",
+            language: "pt",
+          });
+          
+          audioTranscription = transcription.text;
+          fs.unlinkSync(tmpPath); // Clean up temp file
+          
+          if (audioTranscription) {
+            content = (content ? content + ' ' : '') + audioTranscription;
+          }
+        } catch (error) {
+          console.error('Audio transcription error:', error);
+        }
+      }
+
+      // Combine all content
+      const finalContent = content + imageContext;
+
       // Save user message
       await storage.createMessage({
         conversationId,
         role: 'user',
-        content,
+        content: finalContent,
         metadata: null,
       });
 
@@ -805,6 +867,19 @@ Catálogo disponível (${activeProducts.length} produtos):
 ${activeProducts.slice(0, 20).map(p => `- [${p.name}]: R$ ${(p.price / 100).toFixed(2)}${p.description ? ` - ${p.description.substring(0, 100)}` : ''}`).join('\n')}
 
 REGRA CRÍTICA: Quando mencionar um produto, use o nome EXATO entre colchetes [NOME DO PRODUTO] para que o sistema possa exibir a imagem automaticamente.
+
+PROCESSAMENTO DE PEDIDOS:
+Quando o cliente quiser fazer um pedido, colete as seguintes informações obrigatórias:
+1. Nome completo do cliente
+2. Telefone para contato
+3. Endereço completo: CEP, rua, número, complemento, bairro, cidade, estado
+4. Método de pagamento: PIX, cartão de crédito, cartão de débito ou dinheiro
+5. Produtos e quantidades (confirme cada item)
+6. Calcule e confirme o total
+
+Após coletar TODAS as informações, finalize dizendo:
+"✅ Pedido confirmado! Seu código de confirmação é: [CÓDIGO]"
+(O código será gerado automaticamente pelo sistema quando você criar o pedido)
 
 Seu objetivo é:
 1. Atender o cliente de forma personalizada e natural
@@ -879,8 +954,13 @@ Seu objetivo é:
         companyId,
       });
       const order = await storage.createOrder(data);
-      res.json(order);
+      // Return order with confirmation code
+      res.json({ 
+        ...order, 
+        message: `Pedido confirmado! Código de confirmação: ${order.confirmationCode}` 
+      });
     } catch (error) {
+      console.error('Error creating order:', error);
       res.status(400).json({ error: "Erro ao criar pedido" });
     }
   });
