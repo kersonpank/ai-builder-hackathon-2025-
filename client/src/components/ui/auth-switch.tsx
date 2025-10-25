@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,14 +12,81 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Mail, Lock, User, Sparkles, Globe } from "lucide-react";
-import { SiGoogle, SiFacebook, SiX, SiLinkedin } from "react-icons/si";
 
-const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
+const translations = {
+  pt: {
+    appName: "Omni.AI",
+    tagline: "Inteligência artificial para vendas conversacionais",
+    signIn: "Entrar",
+    signUp: "Cadastrar",
+    newHere: "Novo por aqui?",
+    newHereDesc: "Junte-se a nós hoje e descubra um mundo de possibilidades. Crie sua conta em segundos!",
+    alreadyMember: "Já tem conta?",
+    alreadyMemberDesc: "Bem-vindo de volta! Entre para continuar sua jornada conosco.",
+    email: "Email",
+    password: "Senha",
+    fullName: "Nome completo",
+    loading: "ENTRANDO...",
+    signInButton: "ENTRAR",
+    signUpButton: "CADASTRAR",
+    socialLogin: "Em breve",
+    socialSignup: "Em breve",
+    errors: {
+      invalidEmail: "Email inválido",
+      passwordMin: "Senha deve ter no mínimo 6 caracteres",
+      loginError: "Erro no login",
+      loginErrorDesc: "Credenciais inválidas. Verifique seus dados e tente novamente.",
+    },
+  },
+  en: {
+    appName: "Omni.AI",
+    tagline: "Artificial intelligence for conversational sales",
+    signIn: "Sign In",
+    signUp: "Sign Up",
+    newHere: "New here?",
+    newHereDesc: "Join us today and discover a world of possibilities. Create your account in seconds!",
+    alreadyMember: "Already a member?",
+    alreadyMemberDesc: "Welcome back! Sign in to continue your journey with us.",
+    email: "Email",
+    password: "Password",
+    fullName: "Full name",
+    loading: "LOADING...",
+    signInButton: "SIGN IN",
+    signUpButton: "SIGN UP",
+    socialLogin: "Coming soon",
+    socialSignup: "Coming soon",
+    errors: {
+      invalidEmail: "Invalid email",
+      passwordMin: "Password must be at least 6 characters",
+      loginError: "Login error",
+      loginErrorDesc: "Invalid credentials. Please check your details and try again.",
+    },
+  },
+  es: {
+    appName: "Omni.AI",
+    tagline: "Inteligencia artificial para ventas conversacionales",
+    signIn: "Iniciar sesión",
+    signUp: "Registrarse",
+    newHere: "¿Nuevo aquí?",
+    newHereDesc: "Únete a nosotros hoy y descubre un mundo de posibilidades. ¡Crea tu cuenta en segundos!",
+    alreadyMember: "¿Ya tienes cuenta?",
+    alreadyMemberDesc: "¡Bienvenido de nuevo! Inicia sesión para continuar tu viaje con nosotros.",
+    email: "Correo electrónico",
+    password: "Contraseña",
+    fullName: "Nombre completo",
+    loading: "CARGANDO...",
+    signInButton: "INICIAR SESIÓN",
+    signUpButton: "REGISTRARSE",
+    socialLogin: "Próximamente",
+    socialSignup: "Próximamente",
+    errors: {
+      invalidEmail: "Correo electrónico inválido",
+      passwordMin: "La contraseña debe tener al menos 6 caracteres",
+      loginError: "Error de inicio de sesión",
+      loginErrorDesc: "Credenciales inválidas. Por favor, verifica tus datos e intenta de nuevo.",
+    },
+  },
+};
 
 const languages = [
   { code: "pt", label: "PT" },
@@ -29,9 +96,18 @@ const languages = [
 
 export default function AuthSwitch() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [language, setLanguage] = useState("pt");
+  const [language, setLanguage] = useState<"pt" | "en" | "es">("pt");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  const t = translations[language];
+
+  const loginSchema = useMemo(() => z.object({
+    email: z.string().email(t.errors.invalidEmail),
+    password: z.string().min(6, t.errors.passwordMin),
+  }), [language]);
+
+  type LoginForm = z.infer<typeof loginSchema>;
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -55,8 +131,8 @@ export default function AuthSwitch() {
     onError: () => {
       toast({
         variant: "destructive",
-        title: "Erro no login",
-        description: "Credenciais inválidas. Verifique seus dados e tente novamente.",
+        title: t.errors.loginError,
+        description: t.errors.loginErrorDesc,
       });
     },
   });
@@ -71,28 +147,28 @@ export default function AuthSwitch() {
 
   return (
     <div className="relative w-full">
-      {/* Language Selector */}
-      <div className="absolute top-4 right-4 z-50 flex gap-2">
-        {languages.map((lang) => (
-          <button
-            key={lang.code}
-            onClick={() => setLanguage(lang.code)}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
-              language === lang.code
-                ? "bg-indigo-600 text-white shadow-md"
-                : "bg-white/90 text-gray-700 hover-elevate"
-            )}
-            data-testid={`button-lang-${lang.code}`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>{lang.label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* Desktop Layout */}
       <div className="hidden md:block relative w-full h-[600px] bg-background rounded-3xl overflow-hidden shadow-2xl">
+        {/* Language Selector - Desktop */}
+        <div className="absolute top-6 right-6 z-50 flex gap-2">
+          {languages.map((lang) => (
+            <button
+              key={lang.code}
+              onClick={() => setLanguage(lang.code as "pt" | "en" | "es")}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all",
+                language === lang.code
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "bg-white/90 text-gray-700 hover-elevate"
+              )}
+              data-testid={`button-lang-${lang.code}`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>{lang.label}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="grid grid-cols-2 h-full">
           {/* Left Panel */}
           <motion.div
@@ -122,11 +198,11 @@ export default function AuthSwitch() {
               >
                 <div className="flex items-center justify-center gap-2 mb-4">
                   <Sparkles className="w-10 h-10" />
-                  <h1 className="text-5xl font-bold">Omni.AI</h1>
+                  <h1 className="text-5xl font-bold">{t.appName}</h1>
                 </div>
-                <h2 className="text-3xl font-bold">Novo por aqui?</h2>
+                <h2 className="text-3xl font-bold">{t.newHere}</h2>
                 <p className="text-lg text-indigo-100">
-                  Junte-se a nós hoje e descubra um mundo de possibilidades. Crie sua conta em segundos!
+                  {t.newHereDesc}
                 </p>
                 <Button
                   variant="outline"
@@ -135,7 +211,7 @@ export default function AuthSwitch() {
                   className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-indigo-600 transition-all duration-300 px-12 rounded-full"
                   data-testid="button-signup-cta"
                 >
-                  CADASTRAR
+                  {t.signUpButton}
                 </Button>
               </motion.div>
             ) : (
@@ -146,13 +222,13 @@ export default function AuthSwitch() {
                 transition={{ duration: 0.4 }}
                 className="w-full max-w-md space-y-6"
               >
-                <h1 className="text-4xl font-bold text-center">Cadastro</h1>
+                <h1 className="text-4xl font-bold text-center">{t.signUp}</h1>
                 <div className="space-y-4">
                   <div className="relative">
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                     <Input
                       type="text"
-                      placeholder="Nome completo"
+                      placeholder={t.fullName}
                       className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
                       data-testid="input-username"
                     />
@@ -161,7 +237,7 @@ export default function AuthSwitch() {
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                     <Input
                       type="email"
-                      placeholder="Email"
+                      placeholder={t.email}
                       className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
                       data-testid="input-signup-email"
                     />
@@ -170,7 +246,7 @@ export default function AuthSwitch() {
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500" />
                     <Input
                       type="password"
-                      placeholder="Senha"
+                      placeholder={t.password}
                       className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
                       data-testid="input-signup-password"
                     />
@@ -181,43 +257,13 @@ export default function AuthSwitch() {
                     className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-base font-semibold"
                     data-testid="button-signup"
                   >
-                    CADASTRAR
+                    {t.signUpButton}
                   </Button>
                 </div>
-                <div className="space-y-4">
-                  <p className="text-center text-sm text-muted-foreground">
-                    Ou cadastre-se com redes sociais
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {t.socialSignup}
                   </p>
-                  <div className="flex justify-center gap-4">
-                    <button
-                      className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                      data-testid="button-google-signup"
-                      aria-label="Cadastrar com Google"
-                    >
-                      <SiGoogle className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                      data-testid="button-facebook-signup"
-                      aria-label="Cadastrar com Facebook"
-                    >
-                      <SiFacebook className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                      data-testid="button-twitter-signup"
-                      aria-label="Cadastrar com X"
-                    >
-                      <SiX className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                      data-testid="button-linkedin-signup"
-                      aria-label="Cadastrar com LinkedIn"
-                    >
-                      <SiLinkedin className="w-5 h-5" />
-                    </button>
-                  </div>
                 </div>
               </motion.div>
             )}
@@ -248,7 +294,7 @@ export default function AuthSwitch() {
                 transition={{ duration: 0.4 }}
                 className="w-full max-w-md space-y-6"
               >
-                <h1 className="text-4xl font-bold text-center">Entrar</h1>
+                <h1 className="text-4xl font-bold text-center">{t.signIn}</h1>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
@@ -261,7 +307,7 @@ export default function AuthSwitch() {
                               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                               <Input
                                 type="email"
-                                placeholder="Email"
+                                placeholder={t.email}
                                 className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
                                 data-testid="input-email"
                                 {...field}
@@ -282,7 +328,7 @@ export default function AuthSwitch() {
                               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500" />
                               <Input
                                 type="password"
-                                placeholder="Senha"
+                                placeholder={t.password}
                                 className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
                                 data-testid="input-password"
                                 {...field}
@@ -300,44 +346,14 @@ export default function AuthSwitch() {
                       className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-base font-semibold"
                       data-testid="button-login"
                     >
-                      {loginMutation.isPending ? "ENTRANDO..." : "ENTRAR"}
+                      {loginMutation.isPending ? t.loading : t.signInButton}
                     </Button>
                   </form>
                 </Form>
-                <div className="space-y-4">
-                  <p className="text-center text-sm text-muted-foreground">
-                    Ou entre com redes sociais
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {t.socialLogin}
                   </p>
-                  <div className="flex justify-center gap-4">
-                    <button
-                      className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                      data-testid="button-google"
-                      aria-label="Entrar com Google"
-                    >
-                      <SiGoogle className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                      data-testid="button-facebook"
-                      aria-label="Entrar com Facebook"
-                    >
-                      <SiFacebook className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                      data-testid="button-twitter"
-                      aria-label="Entrar com X"
-                    >
-                      <SiX className="w-5 h-5" />
-                    </button>
-                    <button
-                      className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                      data-testid="button-linkedin"
-                      aria-label="Entrar com LinkedIn"
-                    >
-                      <SiLinkedin className="w-5 h-5" />
-                    </button>
-                  </div>
                 </div>
               </motion.div>
             ) : (
@@ -349,9 +365,9 @@ export default function AuthSwitch() {
                 transition={{ duration: 0.3 }}
                 className="space-y-6 max-w-md text-center"
               >
-                <h2 className="text-3xl font-bold">Já tem conta?</h2>
+                <h2 className="text-3xl font-bold">{t.alreadyMember}</h2>
                 <p className="text-lg text-indigo-100">
-                  Bem-vindo de volta! Entre para continuar sua jornada conosco.
+                  {t.alreadyMemberDesc}
                 </p>
                 <Button
                   variant="outline"
@@ -360,7 +376,7 @@ export default function AuthSwitch() {
                   className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-indigo-600 transition-all duration-300 px-12 rounded-full"
                   data-testid="button-signin-cta"
                 >
-                  ENTRAR
+                  {t.signInButton}
                 </Button>
               </motion.div>
             )}
@@ -371,14 +387,34 @@ export default function AuthSwitch() {
       {/* Mobile Layout */}
       <div className="md:hidden bg-background rounded-3xl overflow-hidden shadow-2xl">
         <div className="flex flex-col">
-          {/* Mobile Header with Logo */}
-          <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-500 text-white p-8 text-center">
+          {/* Mobile Header with Logo and Language Selector */}
+          <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-500 text-white p-6 text-center relative">
+            {/* Language Selector - Mobile */}
+            <div className="absolute top-4 right-4 flex gap-1">
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => setLanguage(lang.code as "pt" | "en" | "es")}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-all",
+                    language === lang.code
+                      ? "bg-white text-indigo-600 shadow-md"
+                      : "bg-indigo-700/50 text-white"
+                  )}
+                  data-testid={`button-lang-${lang.code}-mobile`}
+                >
+                  <Globe className="w-3 h-3" />
+                  <span>{lang.label}</span>
+                </button>
+              ))}
+            </div>
+
             <div className="flex items-center justify-center gap-2 mb-2">
               <Sparkles className="w-8 h-8" />
-              <h1 className="text-4xl font-bold">Omni.AI</h1>
+              <h1 className="text-4xl font-bold">{t.appName}</h1>
             </div>
             <p className="text-sm text-indigo-100">
-              Inteligência artificial para vendas conversacionais
+              {t.tagline}
             </p>
           </div>
 
@@ -394,7 +430,7 @@ export default function AuthSwitch() {
               )}
               data-testid="button-mobile-signin"
             >
-              Entrar
+              {t.signIn}
             </button>
             <button
               onClick={() => setMode("signup")}
@@ -406,7 +442,7 @@ export default function AuthSwitch() {
               )}
               data-testid="button-mobile-signup"
             >
-              Cadastrar
+              {t.signUp}
             </button>
           </div>
 
@@ -432,7 +468,7 @@ export default function AuthSwitch() {
                               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                               <Input
                                 type="email"
-                                placeholder="Email"
+                                placeholder={t.email}
                                 className="pl-12 h-12 bg-muted border-0 rounded-full"
                                 data-testid="input-email-mobile"
                                 {...field}
@@ -453,7 +489,7 @@ export default function AuthSwitch() {
                               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500" />
                               <Input
                                 type="password"
-                                placeholder="Senha"
+                                placeholder={t.password}
                                 className="pl-12 h-12 bg-muted border-0 rounded-full"
                                 data-testid="input-password-mobile"
                                 {...field}
@@ -471,40 +507,14 @@ export default function AuthSwitch() {
                       className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-semibold"
                       data-testid="button-login-mobile"
                     >
-                      {loginMutation.isPending ? "ENTRANDO..." : "ENTRAR"}
+                      {loginMutation.isPending ? t.loading : t.signInButton}
                     </Button>
                   </form>
                 </Form>
-                <div className="space-y-4">
-                  <p className="text-center text-xs text-muted-foreground">
-                    Ou entre com redes sociais
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">
+                    {t.socialLogin}
                   </p>
-                  <div className="flex justify-center gap-3">
-                    <button
-                      className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover-elevate"
-                      data-testid="button-google-mobile"
-                    >
-                      <SiGoogle className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover-elevate"
-                      data-testid="button-facebook-mobile"
-                    >
-                      <SiFacebook className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover-elevate"
-                      data-testid="button-twitter-mobile"
-                    >
-                      <SiX className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover-elevate"
-                      data-testid="button-linkedin-mobile"
-                    >
-                      <SiLinkedin className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
               </motion.div>
             ) : (
@@ -520,7 +530,7 @@ export default function AuthSwitch() {
                     <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                     <Input
                       type="text"
-                      placeholder="Nome completo"
+                      placeholder={t.fullName}
                       className="pl-12 h-12 bg-muted border-0 rounded-full"
                       data-testid="input-username-mobile"
                     />
@@ -529,7 +539,7 @@ export default function AuthSwitch() {
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
                     <Input
                       type="email"
-                      placeholder="Email"
+                      placeholder={t.email}
                       className="pl-12 h-12 bg-muted border-0 rounded-full"
                       data-testid="input-signup-email-mobile"
                     />
@@ -538,7 +548,7 @@ export default function AuthSwitch() {
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500" />
                     <Input
                       type="password"
-                      placeholder="Senha"
+                      placeholder={t.password}
                       className="pl-12 h-12 bg-muted border-0 rounded-full"
                       data-testid="input-signup-password-mobile"
                     />
@@ -549,39 +559,13 @@ export default function AuthSwitch() {
                     className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-semibold"
                     data-testid="button-signup-mobile"
                   >
-                    CADASTRAR
+                    {t.signUpButton}
                   </Button>
                 </div>
-                <div className="space-y-4">
-                  <p className="text-center text-xs text-muted-foreground">
-                    Ou cadastre-se com redes sociais
+                <div className="text-center">
+                  <p className="text-xs text-muted-foreground">
+                    {t.socialSignup}
                   </p>
-                  <div className="flex justify-center gap-3">
-                    <button
-                      className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover-elevate"
-                      data-testid="button-google-signup-mobile"
-                    >
-                      <SiGoogle className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover-elevate"
-                      data-testid="button-facebook-signup-mobile"
-                    >
-                      <SiFacebook className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover-elevate"
-                      data-testid="button-twitter-signup-mobile"
-                    >
-                      <SiX className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover-elevate"
-                      data-testid="button-linkedin-signup-mobile"
-                    >
-                      <SiLinkedin className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
               </motion.div>
             )}
