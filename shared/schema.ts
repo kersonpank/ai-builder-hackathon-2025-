@@ -52,7 +52,12 @@ export const agents = pgTable("agents", {
   companyId: varchar("company_id").notNull().references(() => companies.id, { onDelete: 'cascade' }).unique(),
   name: text("name").notNull(),
   toneOfVoice: text("tone_of_voice").notNull(), // "Empático", "Divertido", "Profissional"
+  sellerPersonality: text("seller_personality").notNull().default("balanced"), // "passive", "balanced", "proactive"
   customInstructions: text("custom_instructions"),
+  contextDocuments: text("context_documents").array(), // URLs of uploaded context documents
+  salesGoals: text("sales_goals"), // e.g., "Aumentar ticket médio", "Foco em upsell"
+  productFocusStrategy: text("product_focus_strategy"), // e.g., "Promover produtos em promoção", "Destacar lançamentos"
+  responseStyle: text("response_style"), // e.g., "Respostas curtas e diretas", "Detalhadas e educativas"
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
