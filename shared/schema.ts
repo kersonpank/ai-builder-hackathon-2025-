@@ -70,7 +70,7 @@ export const products = pgTable("products", {
   description: text("description"),
   price: integer("price").notNull(), // stored in cents
   category: text("category"),
-  imageUrl: text("image_url"),
+  imageUrls: text("image_urls").array(), // array of image URLs (max 3)
   stock: integer("stock").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
