@@ -13,6 +13,13 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   createdAt: string;
+  metadata?: {
+    productImages?: Array<{
+      name: string;
+      imageUrl: string | null;
+      hasMore: boolean;
+    }>;
+  } | null;
 }
 
 export default function ChatWeb() {
@@ -168,12 +175,35 @@ export default function ChatWeb() {
               
               <div
                 className={cn(
-                  "rounded-2xl px-4 py-3 max-w-md",
+                  "rounded-2xl px-4 py-3 max-w-md flex flex-col gap-3",
                   message.role === "user"
                     ? "bg-primary text-primary-foreground rounded-br-sm"
                     : "bg-card border rounded-bl-sm"
                 )}
               >
+                {/* Product Images */}
+                {message.role === "assistant" && message.metadata?.productImages && message.metadata.productImages.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {message.metadata.productImages.map((product, index) => (
+                      product.imageUrl && (
+                        <div key={index} className="rounded-lg overflow-hidden border bg-background">
+                          <img 
+                            src={product.imageUrl} 
+                            alt={product.name}
+                            className="w-full aspect-square object-cover"
+                          />
+                          {product.hasMore && (
+                            <div className="px-2 py-1 text-xs text-center text-muted-foreground border-t bg-muted/30">
+                              +{" mais imagens disponíveis"}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+                
+                {/* Message Text */}
                 <p className="text-base leading-relaxed whitespace-pre-wrap">
                   {message.content}
                 </p>
