@@ -231,8 +231,34 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  // Helper function to generate 4-digit alphanumeric code
+  private generateConfirmationCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding ambiguous chars like 0, O, I, 1
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
   async createOrder(data: InsertOrder): Promise<Order> {
-    const result = await db.insert(orders).values(data).returning();
+    // Generate unique confirmation code
+    let confirmationCode = this.generateConfirmationCode();
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    // Ensure uniqueness (though 4-char codes have low collision probability)
+    while (attempts < maxAttempts) {
+      const existing = await db.select().from(orders).where(eq(orders.confirmationCode, confirmationCode)).limit(1);
+      if (existing.length === 0) break;
+      confirmationCode = this.generateConfirmationCode();
+      attempts++;
+    }
+    
+    const result = await db.insert(orders).values({
+      ...data,
+      confirmationCode,
+    }).returning();
     return result[0];
   }
 

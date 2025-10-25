@@ -19,14 +19,26 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 25, 2025 - Multi-Modal Chat & Order Confirmation**
+- **Image upload in ChatWeb**: Customers can upload product images for AI analysis
+  - Frontend: Image icon button with file preview before sending
+  - Backend: Multer multipart processing, image saved to object storage
+  - AI integration: Image URL sent to AI for context-aware responses
+- **Voice recording with transcription**: Customers can record voice messages
+  - Frontend: Mic button with pulsing animation when recording
+  - Backend: OpenAI Whisper API transcribes audio to Portuguese text
+  - AI integration: Transcription added to message content automatically
+- **Order confirmation codes**: 4-digit alphanumeric codes generated for orders
+  - Schema: Added `confirmationCode` field to orders table (varchar 4)
+  - Generation: Auto-generated using unambiguous chars (no 0/O, I/1)
+  - Uniqueness: Server validates codes are unique before creation
+  - AI prompt: Instructions added for collecting order info and providing code
+- **ChatWeb security**: Conversation ownership verified before processing messages
+- **Agent page**: Company info card added (name, segment, document)
+- **Order PDV**: Reference form documents required fields for AI order processing
+
 **October 25, 2025 - Multi-tenant Security & Operational Improvements**
 - **ChatWeb image display fixed**: Products now filter by `status='published'` AND `isActive=true` to exclude drafts
-- **Agent page enhancements**: Added company information card (name, segment, document) for better context
-- **Order documentation (PDV)**: Created reference form showing all fields the AI must collect for order processing
-  - Customer info: name, email, phone
-  - Shipping address: full address with CEP, street, number, city, state
-  - Payment method: PIX, credit card, debit card, cash
-  - Products: name, quantity, total calculation
 - **Multi-tenant security**: Added validation to verify conversation ownership before processing messages in ChatWeb
 - **Product visibility**: Only published products appear in ChatWeb and AI context, drafts remain hidden
 

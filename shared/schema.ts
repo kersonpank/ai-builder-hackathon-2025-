@@ -101,6 +101,7 @@ export const orders = pgTable("orders", {
   paymentMethod: text("payment_method"), // pix, card, boleto (mock)
   items: jsonb("items").notNull(), // array of {productId, name, price, quantity}
   shippingAddress: jsonb("shipping_address"), // {street, city, state, zip}
+  confirmationCode: varchar("confirmation_code", { length: 4 }), // 4-digit alphanumeric order confirmation code
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
