@@ -13,6 +13,7 @@ import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
 import Onboarding from "@/pages/onboarding";
 import Dashboard from "@/pages/dashboard";
+import Agent from "@/pages/agent";
 import Products from "@/pages/products";
 import Orders from "@/pages/orders";
 import Conversations from "@/pages/conversations";
@@ -87,6 +88,18 @@ function Router() {
             component={() => (
               <AuthenticatedLayout>
                 <Dashboard />
+              </AuthenticatedLayout>
+            )}
+          />
+        )}
+      </Route>
+      
+      <Route path="/agent">
+        {() => (
+          <ProtectedRoute
+            component={() => (
+              <AuthenticatedLayout>
+                <Agent />
               </AuthenticatedLayout>
             )}
           />

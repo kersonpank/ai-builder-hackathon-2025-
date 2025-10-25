@@ -1,4 +1,4 @@
-import { Home, Package, ShoppingCart, MessageSquare, Settings, LogOut, Building2 } from "lucide-react";
+import { Home, Package, ShoppingCart, MessageSquare, Settings, LogOut, Building2, Bot } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   Sidebar,
@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 
 const userMenuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Agente", url: "/agent", icon: Bot },
   { title: "Produtos", url: "/products", icon: Package },
   { title: "Pedidos", url: "/orders", icon: ShoppingCart },
   { title: "Conversas", url: "/conversations", icon: MessageSquare },
