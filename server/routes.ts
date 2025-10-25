@@ -727,6 +727,12 @@ ${extractedText.substring(0, 15000)}`;
       const { companyId, conversationId } = req.params;
       const { content } = z.object({ content: z.string() }).parse(req.body);
 
+      // Verify conversation belongs to this company (security check)
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation || conversation.companyId !== companyId) {
+        return res.status(403).json({ error: "Conversa não pertence a esta empresa" });
+      }
+
       // Save user message
       await storage.createMessage({
         conversationId,
