@@ -19,6 +19,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 25, 2025 - Multi-tenant Security & Operational Improvements**
+- **ChatWeb image display fixed**: Products now filter by `status='published'` AND `isActive=true` to exclude drafts
+- **Agent page enhancements**: Added company information card (name, segment, document) for better context
+- **Order documentation (PDV)**: Created reference form showing all fields the AI must collect for order processing
+  - Customer info: name, email, phone
+  - Shipping address: full address with CEP, street, number, city, state
+  - Payment method: PIX, credit card, debit card, cash
+  - Products: name, quantity, total calculation
+- **Multi-tenant security**: Added validation to verify conversation ownership before processing messages in ChatWeb
+- **Product visibility**: Only published products appear in ChatWeb and AI context, drafts remain hidden
+
 **October 25, 2025 - Bulk Product Import with AI**
 - **Bulk import feature**: New workflow for mass product upload via PDF, XML, or TXT files
   - **AI-powered extraction**: OpenAI GPT-4o-mini extracts product data (name, description, price, category, stock) from uploaded documents
