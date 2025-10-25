@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
-  cpfCnpj: z.string().min(11, "CPF/CNPJ inválido"),
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
@@ -29,7 +28,6 @@ export default function Login() {
     defaultValues: {
       email: "",
       password: "",
-      cpfCnpj: "",
     },
   });
 
@@ -76,23 +74,6 @@ export default function Login() {
             <TabsContent value="login" className="space-y-4 mt-4">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="cpfCnpj"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>CPF ou CNPJ da Empresa</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="000.000.000-00 ou 00.000.000/0000-00" 
-                            data-testid="input-cpf-cnpj"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="email"
