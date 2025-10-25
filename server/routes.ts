@@ -360,8 +360,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (const file of files) {
         const fileName = `documents/${req.user!.companyId!}/${Date.now()}-${file.originalname}`;
-        await objectStorageService.uploadPublicObject(fileName, file.buffer);
-        documentUrls.push(fileName);
+        const url = await objectStorageService.uploadToPublicStorage(file.buffer, fileName, file.mimetype);
+        documentUrls.push(url);
       }
 
       const agent = await storage.getAgentByCompany(req.user!.companyId!);
@@ -594,15 +594,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'Profissional': 'Seja formal, objetivo e profissional. Mantenha um tom respeitoso e direto.',
       };
 
+      const personalityInstructions = {
+        'passive': `PERSONALIDADE: Consultor Passivo
+- Responda perguntas de forma educada e prestativa
+- Aguarde o cliente tomar a iniciativa antes de sugerir produtos
+- Seja informativo sem pressionar vendas
+- Foque em responder exatamente o que foi perguntado`,
+        
+        'balanced': `PERSONALIDADE: Vendedor Equilibrado
+- Seja proativo ao sugerir produtos relacionados quando relevante
+- Destaque benefícios principais dos produtos mencionados
+- Ofereça alternativas quando apropriado
+- Respeite o ritmo do cliente, sem forçar decisões
+${agent?.salesGoals ? `- Objetivo de vendas: ${agent.salesGoals}` : ''}
+${agent?.productFocusStrategy ? `- Estratégia: ${agent.productFocusStrategy}` : ''}`,
+        
+        'proactive': `PERSONALIDADE: Vendedor Proativo
+- Tome a iniciativa em oferecer produtos e soluções
+- Crie senso de urgência quando apropriado (promoções, estoque limitado)
+- Faça upsell e cross-sell ativamente
+- Destaque todos os benefícios e diferenciais dos produtos
+- Use gatilhos mentais para incentivar a compra
+${agent?.salesGoals ? `- Objetivo principal: ${agent.salesGoals}` : ''}
+${agent?.productFocusStrategy ? `- Foco estratégico: ${agent.productFocusStrategy}` : ''}`
+      };
+
+      const responseStyleInstruction = agent?.responseStyle 
+        ? `Estilo de resposta: ${agent.responseStyle}` 
+        : 'Use textos curtos e humanizados (máximo 2-3 frases por vez)';
+
       const systemPrompt = `Você é ${agent?.name || 'um assistente virtual'} da ${company?.name}.
 
 Tom de voz: ${toneInstructions[agent?.toneOfVoice as keyof typeof toneInstructions] || toneInstructions['Profissional']}
 
+${personalityInstructions[agent?.sellerPersonality as keyof typeof personalityInstructions] || personalityInstructions['balanced']}
+
 ${agent?.customInstructions ? `Instruções adicionais: ${agent.customInstructions}` : ''}
 
 IMPORTANTE - Estilo de comunicação:
-- Use textos curtos e humanizados (máximo 2-3 frases por vez)
-- Seja natural e conversacional, não formal demais
+- ${responseStyleInstruction}
+- Seja natural e conversacional
 - Quando recomendar produtos, mencione EXATAMENTE o nome do produto como aparece no catálogo
 - Use emojis de forma moderada para dar personalidade
 

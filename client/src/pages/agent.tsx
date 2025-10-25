@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -53,14 +53,29 @@ export default function Agent() {
   });
 
   const [formData, setFormData] = useState({
-    name: agent?.name || "",
-    toneOfVoice: agent?.toneOfVoice || "",
-    sellerPersonality: (agent?.sellerPersonality || "balanced") as SellerPersonality,
-    customInstructions: agent?.customInstructions || "",
-    salesGoals: agent?.salesGoals || "",
-    productFocusStrategy: agent?.productFocusStrategy || "",
-    responseStyle: agent?.responseStyle || ""
+    name: "",
+    toneOfVoice: "",
+    sellerPersonality: "balanced" as SellerPersonality,
+    customInstructions: "",
+    salesGoals: "",
+    productFocusStrategy: "",
+    responseStyle: ""
   });
+
+  // Sync form data when agent data is loaded
+  useEffect(() => {
+    if (agent) {
+      setFormData({
+        name: agent.name || "",
+        toneOfVoice: agent.toneOfVoice || "",
+        sellerPersonality: (agent.sellerPersonality || "balanced") as SellerPersonality,
+        customInstructions: agent.customInstructions || "",
+        salesGoals: agent.salesGoals || "",
+        productFocusStrategy: agent.productFocusStrategy || "",
+        responseStyle: agent.responseStyle || ""
+      });
+    }
+  }, [agent]);
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<Agent>) => {
