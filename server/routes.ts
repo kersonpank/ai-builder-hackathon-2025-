@@ -107,20 +107,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Login
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, cpfCnpj } = z.object({
+      const { email, password } = z.object({
         email: z.string().email(),
         password: z.string(),
-        cpfCnpj: z.string(),
       }).parse(req.body);
 
-      const company = await storage.getCompanyByCpfCnpj(cpfCnpj);
-      if (!company) {
-        return res.status(401).json({ error: "Empresa não encontrada" });
-      }
-
-      const user = await storage.getUserByEmail(email, company.id);
+      const user = await storage.getUserByEmailOnly(email);
       if (!user || !(await comparePassword(password, user.password))) {
         return res.status(401).json({ error: "Credenciais inválidas" });
+      }
+
+      const company = await storage.getCompany(user.companyId);
+      if (!company) {
+        return res.status(401).json({ error: "Empresa não encontrada" });
       }
 
       const token = generateToken({ 
