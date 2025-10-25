@@ -19,6 +19,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 25, 2025 - Multiple Product Images Feature**
+- **Multiple product images**: Products now support up to 3 images instead of single image
+  - Database: Updated products.imageUrls to text[] array field
+  - Backend: New `/api/products/:id/images` endpoint for multi-image upload
+  - Image processing: Automatic resize to 800x800px using Sharp library
+  - Storage: Images saved to object storage public directory
+  - Frontend: Updated product form with multi-image upload UI and previews
+  - Display: Grid preview of selected/uploaded images with file count validation
+- **AI agent enhanced with product images**:
+  - Prompt updated to use short, humanized text (2-3 sentences max)
+  - Products mentioned using bracket syntax [Product Name] for reliable parsing
+  - AI responses automatically include product images in message metadata
+  - Detection logic extracts product names and attaches first image + hasMore flag
+- **ChatWeb image display**:
+  - Messages now show product images above assistant text
+  - Images displayed in square aspect ratio with border
+  - "Mais imagens disponíveis" indicator when product has 2-3 images
+  - Message metadata structure: `{ productImages: [{name, imageUrl, hasMore}] }`
+
 **October 25, 2025 - Login Simplification and Logo Upload**
 - **Login simplified**: Removed CPF/CNPJ requirement from login page, now uses only email/password
   - Backend: Added `getUserByEmailOnly` method for global email authentication
@@ -110,13 +129,13 @@ Preferred communication style: Simple, everyday language.
 **Core Entities:**
 
 1. **Admin Users** - Platform operators with global access
-2. **Companies** - Tenant entities with status management (active/suspended/trial)
+2. **Companies** - Tenant entities with status management (active/suspended/trial), logo URL
 3. **Users** - Company-specific users with role-based permissions
 4. **Agents** - AI agent configurations per company (tone, instructions, status)
-5. **Products** - Company product catalogs with pricing and metadata
+5. **Products** - Company product catalogs with pricing, metadata, and image URLs array (max 3)
 6. **Orders** - Customer orders with status tracking
 7. **Conversations** - Chat sessions with channel attribution
-8. **Messages** - Individual chat messages with role tracking (user/assistant)
+8. **Messages** - Individual chat messages with role tracking (user/assistant) and metadata for product images
 9. **Channels** - Communication channel configurations
 
 **Database Technology:**
@@ -162,6 +181,11 @@ Preferred communication style: Simple, everyday language.
 - class-variance-authority for component variants
 - date-fns with Portuguese locale for date formatting
 - Lucide React for icon library
+
+**Media Processing:**
+- Sharp library for server-side image resizing and optimization
+- Multer for handling multipart/form-data file uploads
+- Object storage integration for persistent image storage
 
 **Key Integration Points:**
 - SESSION_SECRET environment variable required for JWT operations
