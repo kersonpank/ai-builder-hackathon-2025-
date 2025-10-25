@@ -50,7 +50,7 @@ const toneOptions = [
 const step1Schema = z.object({
   companyName: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   segment: z.string().min(1, "Selecione um segmento"),
-  cnpj: z.string().min(14, "CNPJ inválido"),
+  cpfCnpj: z.string().min(11, "CPF/CNPJ inválido"),
   userName: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
@@ -76,7 +76,7 @@ export default function Onboarding() {
     defaultValues: {
       companyName: "",
       segment: "",
-      cnpj: "",
+      cpfCnpj: "",
       userName: "",
       email: "",
       password: "",
@@ -151,7 +151,7 @@ export default function Onboarding() {
       company: {
         name: data.companyName,
         segment: data.segment,
-        cnpj: data.cnpj,
+        cpfCnpj: data.cpfCnpj,
         status: "active",
       },
       user: {
@@ -292,12 +292,12 @@ export default function Onboarding() {
                     
                     <FormField
                       control={step1Form.control}
-                      name="cnpj"
+                      name="cpfCnpj"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>CNPJ</FormLabel>
+                          <FormLabel>CPF ou CNPJ</FormLabel>
                           <FormControl>
-                            <Input placeholder="00.000.000/0000-00" data-testid="input-company-cnpj" {...field} />
+                            <Input placeholder="000.000.000-00 ou 00.000.000/0000-00" data-testid="input-company-cpf-cnpj" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
