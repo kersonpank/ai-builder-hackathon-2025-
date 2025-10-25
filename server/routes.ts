@@ -13,8 +13,25 @@ import {
 import { z } from "zod";
 import { insertUserSchema, insertCompanySchema, insertAgentSchema, insertProductSchema, insertOrderSchema, insertConversationSchema, insertMessageSchema, insertChannelSchema } from "@shared/schema";
 import OpenAI from "openai";
+import multer from "multer";
+import sharp from "sharp";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Configure multer for file uploads (memory storage for processing)
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas imagens são permitidas'));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -140,6 +157,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(400).json({ error: "Erro na validação dos dados" });
+    }
+  });
+
+  // Upload company logo
+  app.post("/api/company/logo", requireAuth, upload.single('logo'), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhuma imagem enviada" });
+      }
+
+      const companyId = req.user!.companyId!;
+      
+      // Resize image to 200x200 using sharp
+      const resizedImage = await sharp(req.file.buffer)
+        .resize(200, 200, { fit: 'cover' })
+        .png()
+        .toBuffer();
+
+      // Save to object storage public directory
+      const publicDir = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(',')[0];
+      if (!publicDir) {
+        throw new Error('Object storage not configured');
+      }
+
+      const filename = `company-logo-${companyId}-${Date.now()}.png`;
+      const filepath = join(publicDir, filename);
+      
+      // Ensure directory exists
+      await mkdir(publicDir, { recursive: true });
+      await writeFile(filepath, resizedImage);
+
+      // Update company logoUrl
+      const logoUrl = `/public/${filename}`;
+      await storage.updateCompany(companyId, { logoUrl });
+
+      res.json({ logoUrl });
+    } catch (error) {
+      console.error('Logo upload error:', error);
+      res.status(500).json({ error: "Erro ao fazer upload da logo" });
     }
   });
 
