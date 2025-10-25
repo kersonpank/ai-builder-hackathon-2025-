@@ -15,8 +15,7 @@ import { insertUserSchema, insertCompanySchema, insertAgentSchema, insertProduct
 import OpenAI from "openai";
 import multer from "multer";
 import sharp from "sharp";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { ObjectStorageService } from "./objectStorage";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -34,6 +33,24 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // ============ PUBLIC FILE SERVING ============
+  
+  // Serve public objects from object storage
+  app.get("/public/:filePath(*)", async (req, res) => {
+    const filePath = req.params.filePath;
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const file = await objectStorageService.searchPublicObject(filePath);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      objectStorageService.downloadObject(file, res);
+    } catch (error) {
+      console.error("Error searching for public object:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
   
   // ============ AUTH ROUTES ============
   
@@ -176,20 +193,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .toBuffer();
 
       // Save to object storage public directory
-      const publicDir = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(',')[0];
-      if (!publicDir) {
-        throw new Error('Object storage not configured');
-      }
-
+      const objectStorageService = new ObjectStorageService();
       const filename = `company-logo-${companyId}-${Date.now()}.png`;
-      const filepath = join(publicDir, filename);
-      
-      // Ensure directory exists
-      await mkdir(publicDir, { recursive: true });
-      await writeFile(filepath, resizedImage);
+      const logoUrl = await objectStorageService.uploadToPublicStorage(
+        resizedImage,
+        filename,
+        'image/png'
+      );
 
       // Update company logoUrl
-      const logoUrl = `/public/${filename}`;
       await storage.updateCompanyLogo(companyId, logoUrl);
 
       res.json({ logoUrl });
@@ -220,13 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Produto não encontrado" });
       }
 
-      const publicDir = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(',')[0];
-      if (!publicDir) {
-        throw new Error('Object storage not configured');
-      }
-
-      // Ensure directory exists
-      await mkdir(publicDir, { recursive: true });
+      const objectStorageService = new ObjectStorageService();
 
       // Process and save each image
       const imageUrls: string[] = [];
@@ -238,10 +244,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .toBuffer();
 
         const filename = `product-${productId}-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
-        const filepath = join(publicDir, filename);
-        
-        await writeFile(filepath, resizedImage);
-        imageUrls.push(`/public/${filename}`);
+        const imageUrl = await objectStorageService.uploadToPublicStorage(
+          resizedImage,
+          filename,
+          'image/jpeg'
+        );
+        imageUrls.push(imageUrl);
       }
 
       // Update product with new image URLs
@@ -592,7 +600,7 @@ Seu objetivo é:
 
       // Detect products mentioned in the response using [Product Name] format
       const productRegex = /\[([^\]]+)\]/g;
-      const matches = [...assistantMessage.matchAll(productRegex)];
+      const matches = Array.from(assistantMessage.matchAll(productRegex));
       const mentionedProductNames = matches.map(m => m[1].trim());
       
       // Find matching products and get their first image
@@ -618,8 +626,7 @@ Seu objetivo é:
         metadata: productImages.length > 0 ? { productImages } : null,
       });
 
-      // Update conversation timestamp
-      await storage.updateConversation(conversationId, { updatedAt: new Date() });
+      // Update conversation timestamp is automatic via database
 
       res.json(savedMessage);
     } catch (error) {

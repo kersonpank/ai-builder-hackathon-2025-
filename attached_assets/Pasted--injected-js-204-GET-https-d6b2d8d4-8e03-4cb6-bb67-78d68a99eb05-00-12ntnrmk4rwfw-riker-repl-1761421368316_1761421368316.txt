@@ -1,0 +1,31 @@
+
+﻿
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/company 401 (Unauthorized)
+ 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/company 401 (Unauthorized)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/stats 401 (Unauthorized)
+ 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/stats 401 (Unauthorized)
+workspace_iframe.htm…rd&id=%3Ar1q1%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/company 401 (Unauthorized)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/stats 401 (Unauthorized)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/products 401 (Unauthorized)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/company 401 (Unauthorized)
+injected.js:204 
+ POST https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/products/02e83b04-ba6b-43d6-abc7-bc09ce1d0130/images 500 (Internal Server Error)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/products 401 (Unauthorized)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/company 401 (Unauthorized)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/orders 401 (Unauthorized)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/products 401 (Unauthorized)
+injected.js:204 
+ GET https://d6b2d8d4-8e03-4cb6-bb67-78d68a99eb05-00-12ntnrmk4rwfw.riker.replit.dev/api/company 401 (Unauthorized)
