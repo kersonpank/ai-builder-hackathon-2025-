@@ -311,15 +311,9 @@ export default function Orders() {
                       <div className="space-y-2">
                         <h4 className="font-semibold text-sm">Endereço de Entrega</h4>
                         <div className="text-sm text-muted-foreground">
-                          {typeof order.shippingAddress === 'object' && (
-                            <>
-                              <div>{(order.shippingAddress as any).street}</div>
-                              <div>
-                                {(order.shippingAddress as any).city}, {(order.shippingAddress as any).state}
-                              </div>
-                              <div>CEP: {(order.shippingAddress as any).zip}</div>
-                            </>
-                          )}
+                          {typeof order.shippingAddress === 'string' 
+                            ? order.shippingAddress 
+                            : JSON.stringify(order.shippingAddress)}
                         </div>
                       </div>
                     )}
