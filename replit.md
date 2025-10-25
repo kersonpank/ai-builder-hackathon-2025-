@@ -19,6 +19,28 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 25, 2025 - Advanced Agent Configuration Dashboard**
+- **New Agent configuration page**: Added comprehensive /agent dashboard section for seller personality and behavior settings
+  - **Seller personality presets**: 3 distinct profiles with visual selection
+    - Passive: Responds to queries without pushing sales
+    - Balanced: Recommends products when relevant, highlights benefits
+    - Proactive: Creates urgency, offers upsell/cross-sell, actively closes sales
+  - **Advanced settings**: Sales goals, product focus strategy, response style customization
+  - **Document upload**: Context documents (PDF, TXT, DOCX) for agent knowledge base
+  - **Database schema**: New fields added to agents table:
+    - `seller_personality` (passive/balanced/proactive)
+    - `context_documents` (text array of uploaded document URLs)
+    - `sales_goals`, `product_focus_strategy`, `response_style` (text fields)
+  - **Backend endpoints**:
+    - PATCH /api/agent - Update agent configuration
+    - POST /api/agent/documents - Upload context documents to object storage
+  - **AI prompt enhancement**: ChatWeb system prompt now dynamically adapts based on:
+    - Selected seller personality with detailed behavioral instructions
+    - Sales goals and product focus strategy integration
+    - Response style preferences (short/medium/detailed)
+  - **Frontend**: Visual card-based personality selector with characteristics, reactive form state sync
+  - **Navigation**: Added "Agente" menu item to sidebar with Bot icon
+
 **October 25, 2025 - Multiple Product Images Feature**
 - **Multiple product images**: Products now support up to 3 images instead of single image
   - Database: Updated products.imageUrls to text[] array field
