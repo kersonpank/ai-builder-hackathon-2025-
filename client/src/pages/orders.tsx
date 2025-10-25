@@ -307,16 +307,16 @@ export default function Orders() {
                       </div>
                     </div>
 
-                    {order.shippingAddress && (
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm">Endereço de Entrega</h4>
-                        <div className="text-sm text-muted-foreground">
-                          {typeof order.shippingAddress === 'string' 
-                            ? order.shippingAddress 
-                            : JSON.stringify(order.shippingAddress)}
-                        </div>
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-sm">Endereço de Entrega</h4>
+                      <div className="text-sm text-muted-foreground">
+                        {order.shippingAddress 
+                          ? (typeof order.shippingAddress === 'string' 
+                              ? order.shippingAddress 
+                              : JSON.stringify(order.shippingAddress))
+                          : 'Não informado'}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
