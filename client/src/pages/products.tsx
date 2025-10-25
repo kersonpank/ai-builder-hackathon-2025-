@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Sparkles, Package } from "lucide-react";
+import { Plus, Edit, Trash2, Sparkles, Package, ImageIcon, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@shared/schema";
 
@@ -31,6 +31,9 @@ export default function Products() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -61,11 +64,17 @@ export default function Products() {
       if (!response.ok) throw new Error("Erro ao criar produto");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (product) => {
+      // Upload images if any were selected
+      if (imageFiles.length > 0) {
+        await uploadProductImages(product.id);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({ title: "Produto criado com sucesso!" });
       setIsDialogOpen(false);
       form.reset();
+      setImageFiles([]);
+      setImagePreviews([]);
     },
     onError: () => {
       toast({ variant: "destructive", title: "Erro ao criar produto" });
@@ -85,12 +94,18 @@ export default function Products() {
       if (!response.ok) throw new Error("Erro ao atualizar produto");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (product, variables) => {
+      // Upload images if any were selected
+      if (imageFiles.length > 0) {
+        await uploadProductImages(variables.id);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({ title: "Produto atualizado com sucesso!" });
       setIsDialogOpen(false);
       setEditingProduct(null);
       form.reset();
+      setImageFiles([]);
+      setImagePreviews([]);
     },
     onError: () => {
       toast({ variant: "destructive", title: "Erro ao atualizar produto" });
@@ -115,6 +130,56 @@ export default function Products() {
       toast({ variant: "destructive", title: "Erro ao remover produto" });
     },
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 3) {
+      toast({ variant: "destructive", title: "Máximo de 3 imagens permitidas" });
+      return;
+    }
+    
+    setImageFiles(files);
+    
+    // Create previews
+    const previews = files.map(file => {
+      const reader = new FileReader();
+      return new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    });
+    
+    Promise.all(previews).then(setImagePreviews);
+  };
+
+  const uploadProductImages = async (productId: string) => {
+    if (imageFiles.length === 0) return;
+    
+    setUploadingImages(true);
+    try {
+      const formData = new FormData();
+      imageFiles.forEach(file => {
+        formData.append('images', file);
+      });
+      
+      const response = await fetch(`/api/products/${productId}/images`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao fazer upload das imagens",
+      });
+    } finally {
+      setUploadingImages(false);
+    }
+  };
 
   const generateDescription = async () => {
     const name = form.getValues("name");
@@ -389,6 +454,49 @@ export default function Products() {
                   </FormItem>
                 )}
               />
+
+              <div className="space-y-2">
+                <FormLabel>Imagens do Produto (até 3)</FormLabel>
+                <div className="flex flex-col gap-3">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    data-testid="input-product-images"
+                    className="cursor-pointer"
+                  />
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative border rounded-lg overflow-hidden aspect-square">
+                          <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {editingProduct?.imageUrls && editingProduct.imageUrls.length > 0 && imagePreviews.length === 0 && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {editingProduct.imageUrls.map((url, index) => (
+                        <div key={index} className="relative border rounded-lg overflow-hidden aspect-square">
+                          <img src={url} alt={`Product ${index + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {imagePreviews.length === 0 && (!editingProduct?.imageUrls || editingProduct.imageUrls.length === 0) && (
+                    <div className="border border-dashed rounded-lg p-6 flex items-center justify-center bg-muted/30">
+                      <div className="text-center text-muted-foreground">
+                        <ImageIcon className="w-8 h-8 mx-auto mb-2" />
+                        <p className="text-sm">Selecione até 3 imagens</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  As imagens serão exibidas na conversa quando o agente mencionar este produto
+                </p>
+              </div>
 
               <DialogFooter>
                 <Button
