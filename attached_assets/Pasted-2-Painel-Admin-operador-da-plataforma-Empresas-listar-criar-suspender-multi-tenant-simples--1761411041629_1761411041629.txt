@@ -1,0 +1,151 @@
+2) Painel Admin (operador da plataforma)
+
+Empresas: listar/criar/suspender (multi-tenant simples).
+
+Planos (mock): Gratuito vs. Premium (limites de produtos/chats). Troca de plano por empresa.
+
+Métricas globais (mock): total de empresas, volume de conversas/pedidos, taxa média de conversão.
+
+3) ChatWeb (cliente final)
+
+Página pública da empresa com widget de chat:
+
+Mensagens livres em linguagem natural.
+
+Detecção de intenção mínima (consulta de produto, compra, rastreio, dúvida/reclamação).
+
+Recomendações: retornar top 3 produtos (nome, preço, imagem) com botões “Adicionar” / “Comprar”.
+
+Checkout (mock): coletar nome + telefone + endereço → criar pedido + exibir link/QR de pagamento simulado → status “Pendente Pagamento”.
+
+Pós-venda: cliente pode perguntar “onde está meu pedido?” → retornar status.
+
+Empatia: respostas curtas, claras; se detectar frustração ou “falar com humano”, sinalizar handoff (só registrar um “ticket” no painel do usuário).
+
+Idiomas: auto-detectar e responder no mesmo idioma; comando “/lang PT|EN” muda manualmente.
+
+DADOS MOCK (obrigatório)
+
+Popular com:
+
+5–10 produtos (ex.: Camiseta Clássica, Caneca Personalizada, Poster Decorativo, Hoodie Premium, E-book).
+
+3–5 pedidos com diferentes status.
+
+Conversas simuladas para popular analytics.
+
+Incluir um catálogo .csv de exemplo no repo e seed no DB (ou arquivo JSON) para demo instantânea.
+
+MODELOS / ENTIDADES (mínimo)
+
+Empresa { id, nome, slug, plano, createdAt }
+
+Usuario { id, empresaId, email, senha_hash, role } (role: owner|member)
+
+Produto { id, empresaId, nome, descricao, preco, imagemUrl, categoria?, link? }
+
+Conversa { id, empresaId, clienteId?, canal, sentimento?, createdAt }
+
+Mensagem { id, conversaId, autor('cliente'|'agente'), texto, payload?, createdAt }
+
+Pedido { id, empresaId, itens[], total, cliente{nome,telefone,endereco}, status, createdAt }
+
+Plano { id, nome, limites{produtos,chats}, preco? }
+
+(pode adaptar conforme a stack escolhida)
+
+REGRAS CRÍTICAS (resumo operacional)
+
+Validações catálogo: preço positivo; imagem obrigatória; ID único por empresa.
+
+Conversas: manter contexto por sessão; expirar após inatividade (mock: 24h). Salvar histórico para analytics.
+
+Intenções:
+
+Consulta: retornar top 3 relevantes.
+
+Compra: coletar dados do cliente, criar pedido, mostrar “pagamento (mock)”.
+
+Rastreio: buscar pedido pelo telefone/nome + último pedido (mock).
+
+Reclamação/dúvida: tentar responder; se falhar, abrir “ticket” para humano (apenas registrar).
+
+Planos: aplicar limites por plano (ex.: Gratuito = 20 produtos, 200 chats/mês mock).
+
+Privacidade: cada empresa vê apenas seus dados (multi-tenant básico).
+
+Empatia: tom ajustado ao “tom de voz” escolhido no onboarding.
+
+UI/UX (diretrizes)
+
+Onboarding wizard 4 passos, com feedback de validação e preview de como o agente responde.
+
+Chat limpo: bolhas, cards de produto, CTA visível (“Comprar”, “Ver mais”).
+
+Painéis com navegação lateral e “Resumo” (cards de KPIs). Acessibilidade básica (teclado/aria-label).
+
+Branding da empresa: permitir cor primária e logo no chat.
+
+NÃO-FUNCIONAIS
+
+Rodar com 1 comando (ex.: npm run dev ou equivalente).
+
+.env.example com variáveis necessárias (simular APIs de WhatsApp/pagamento).
+
+Logs simples por requisição e erros.
+
+i18n mínimo (PT/EN).
+
+ENTREGAS ESPERADAS
+
+Monorepo ou monólito com:
+
+Front do Painel Admin, Painel do Usuário e ChatWeb (+ widget embutível).
+
+API/serviço de IA (pode usar provider ou mock local) para classificação de intenção e geração de resposta usando dados do catálogo.
+
+Camada de persistência (DB ou JSON com repositório, a critério do time).
+
+Scripts:
+
+seed para dados mock.
+
+dev e build/start.
+
+Testes básicos:
+
+1 teste de validação de produto (preço negativo → erro).
+
+1 teste de fluxo de compra (criação de pedido a partir do chat).
+
+1 teste de limite de plano (bloquear novo chat ao estourar cota — mock).
+
+Documentação (README do repo):
+
+Como rodar local.
+
+Como acessar /admin, /app (painel do usuário) e /chat/{slug} (loja conversacional).
+
+Usuários de demo (admin/empresa) e QR/link do chat de exemplo.
+
+CRITÉRIOS DE ACEITE (demo)
+
+Consigo criar uma empresa via onboarding, subir catálogo, escolher tom de voz e gerar link/QR do chat.
+
+No ChatWeb, consigo buscar produtos, comprar (mock), e rastrear status depois.
+
+Vejo pedidos e métricas básicas no painel do usuário.
+
+No Admin, consigo alternar plano de uma empresa e visualizar métricas globais.
+
+Tudo roda com 1 comando, com dados mock já carregados.
+
+DIFERENCIAIS (se houver tempo)
+
+Handoff para humano com briefing automático no painel do usuário.
+
+Análise de sentimento agregada por período.
+
+Tema de chat com paleta baseada na marca da empresa.
+
+Observação final: foquem em clareza do código, UX simples e demonstração funcional. A stack é livre, mas priorizem produtividade e facilidade de manutenção.
