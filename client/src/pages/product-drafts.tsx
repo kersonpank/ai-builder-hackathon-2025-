@@ -116,7 +116,7 @@ export default function ProductDrafts() {
     if (!editingId) return;
     
     // Convert price and stock to proper types
-    const normalizedData: Partial<Product> = {
+    const normalizedData: any = {
       ...editForm,
     };
     
@@ -124,14 +124,14 @@ export default function ProductDrafts() {
     if (editForm.price !== undefined) {
       normalizedData.price = typeof editForm.price === 'number' 
         ? editForm.price 
-        : Math.round(parseFloat(editForm.price.toString()) * 100);
+        : Math.round(parseFloat(String(editForm.price)) * 100);
     }
     
     // Ensure stock is an integer
     if (editForm.stock !== undefined) {
       normalizedData.stock = typeof editForm.stock === 'number'
         ? editForm.stock
-        : parseInt(editForm.stock.toString()) || 0;
+        : parseInt(String(editForm.stock)) || 0;
     }
     
     updateMutation.mutate({ id: editingId, data: normalizedData });
