@@ -336,6 +336,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update agent configuration
+  app.patch("/api/agent", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const updates = insertAgentSchema.partial().parse(req.body);
+      const agent = await storage.updateAgent(req.user!.companyId!, updates);
+      res.json(agent);
+    } catch (error) {
+      res.status(400).json({ error: "Erro ao atualizar agente" });
+    }
+  });
+
+  // Upload context documents for agent
+  app.post("/api/agent/documents", requireAuth, upload.array('documents', 10), async (req: AuthRequest, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "Nenhum arquivo enviado" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const documentUrls: string[] = [];
+
+      for (const file of files) {
+        const fileName = `documents/${req.user!.companyId!}/${Date.now()}-${file.originalname}`;
+        await objectStorageService.uploadPublicObject(fileName, file.buffer);
+        documentUrls.push(fileName);
+      }
+
+      const agent = await storage.getAgentByCompany(req.user!.companyId!);
+      const existingDocs = agent?.contextDocuments || [];
+      const updatedDocs = [...existingDocs, ...documentUrls];
+
+      const updated = await storage.updateAgent(req.user!.companyId!, {
+        contextDocuments: updatedDocs,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error('Error uploading documents:', error);
+      res.status(500).json({ error: "Erro ao enviar documentos" });
+    }
+  });
+
   // ============ PRODUCT ROUTES ============
 
   // Get all products
