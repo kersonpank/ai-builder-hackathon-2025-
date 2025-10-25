@@ -190,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update company logoUrl
       const logoUrl = `/public/${filename}`;
-      await storage.updateCompany(companyId, { logoUrl });
+      await storage.updateCompanyLogo(companyId, logoUrl);
 
       res.json({ logoUrl });
     } catch (error) {
