@@ -24,6 +24,7 @@ export interface IStorage {
   getCompanyByCpfCnpj(cpfCnpj: string): Promise<Company | undefined>;
   createCompany(data: InsertCompany): Promise<Company>;
   updateCompany(id: string, data: Partial<InsertCompany>): Promise<Company | undefined>;
+  updateCompanyLogo(id: string, logoUrl: string): Promise<Company | undefined>;
   deleteCompany(id: string): Promise<void>;
   
   // Users
@@ -109,6 +110,11 @@ export class DbStorage implements IStorage {
 
   async updateCompany(id: string, data: Partial<InsertCompany>): Promise<Company | undefined> {
     const result = await db.update(companies).set(data).where(eq(companies.id, id)).returning();
+    return result[0];
+  }
+
+  async updateCompanyLogo(id: string, logoUrl: string): Promise<Company | undefined> {
+    const result = await db.update(companies).set({ logoUrl }).where(eq(companies.id, id)).returning();
     return result[0];
   }
 
