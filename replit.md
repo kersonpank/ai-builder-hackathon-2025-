@@ -17,6 +17,17 @@ Omni.AI is a B2B SaaS platform that provides AI-powered customer service agents 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**October 25, 2025 - CPF/CNPJ Support**
+- Added support for both CPF and CNPJ in company registration and login
+- Database: Renamed `cnpj` column to `cpfCnpj` in companies table (ALTER TABLE migration)
+- Backend: Updated all methods from `getCompanyByCNPJ` to `getCompanyByCpfCnpj`
+- Frontend: Updated onboarding, login, and admin dashboard forms to accept both formats
+- Validation: Minimum length changed from 14 to 11 characters to accommodate CPF
+- Bug fix: Corrected apiRequest calls from object syntax to positional parameters in onboarding.tsx and login.tsx
+- Testing: E2E test passed - registration flow confirmed working from Step 1 to Step 2
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -106,7 +117,8 @@ Preferred communication style: Simple, everyday language.
 - Foreign key constraints with cascade deletes
 - UUID primary keys for distributed systems
 - Timestamp tracking for audit trails
-- Unique constraints on business identifiers (CNPJ, email within company)
+- Unique constraints on business identifiers (CPF/CNPJ, email within company)
+- Companies table uses cpfCnpj field accepting both CPF (11+ chars) and CNPJ (14+ chars)
 
 ### External Dependencies
 
