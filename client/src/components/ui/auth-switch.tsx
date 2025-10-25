@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Mail, Lock, User } from "lucide-react";
 import { SiGoogle, SiFacebook, SiX, SiLinkedin } from "react-icons/si";
 
@@ -64,80 +64,158 @@ export default function AuthSwitch() {
 
   return (
     <div className="relative w-full h-[600px] bg-background rounded-3xl overflow-hidden shadow-2xl">
-      <div className="absolute inset-0 flex">
-        {/* Left Panel - Animated */}
-        <AnimatePresence mode="wait">
+      <div className="grid grid-cols-2 h-full">
+        {/* Left Panel */}
+        <motion.div
+          initial={false}
+          animate={{
+            background: mode === "signin"
+              ? "linear-gradient(135deg, rgb(99, 102, 241), rgb(168, 85, 247), rgb(59, 130, 246))"
+              : "transparent",
+          }}
+          transition={{ duration: 0.5 }}
+          className={cn(
+            "relative flex flex-col items-center justify-center p-12 text-white",
+            mode === "signup" && "bg-background text-foreground"
+          )}
+          style={{
+            clipPath: mode === "signin" ? "polygon(0 0, 100% 0, 85% 100%, 0% 100%)" : "none",
+          }}
+        >
           {mode === "signin" ? (
             <motion.div
-              key="signup-panel"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute left-0 top-0 w-1/2 h-full bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-500 text-white flex flex-col items-center justify-center p-12 z-10"
-              style={{
-                clipPath: "polygon(0 0, 100% 0, 85% 100%, 0% 100%)",
-              }}
+              key="signup-cta"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6 max-w-md text-center"
             >
-              <div className="space-y-6 max-w-md text-center">
-                <h2 className="text-4xl font-bold">New here?</h2>
-                <p className="text-lg text-indigo-100">
-                  Join us today and discover a world of possibilities. Create your account in seconds!
-                </p>
+              <h2 className="text-4xl font-bold">New here?</h2>
+              <p className="text-lg text-indigo-100">
+                Join us today and discover a world of possibilities. Create your account in seconds!
+              </p>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setMode("signup")}
+                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-indigo-600 transition-all duration-300 px-12 rounded-full"
+                data-testid="button-signup-cta"
+              >
+                SIGN UP
+              </Button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="signup-form"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4 }}
+              className="w-full max-w-md space-y-8"
+            >
+              <h1 className="text-4xl font-bold text-center">Sign up</h1>
+              <div className="space-y-4">
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
+                  <Input
+                    type="text"
+                    placeholder="Username"
+                    className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
+                    data-testid="input-username"
+                  />
+                </div>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
+                  <Input
+                    type="email"
+                    placeholder="Email"
+                    className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
+                    data-testid="input-signup-email"
+                  />
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500" />
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
+                    data-testid="input-signup-password"
+                  />
+                </div>
                 <Button
-                  variant="outline"
-                  size="lg"
                   onClick={handleSignUpClick}
-                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-indigo-600 transition-all duration-300 px-12 rounded-full"
-                  data-testid="button-signup-cta"
+                  size="lg"
+                  className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-base font-semibold"
+                  data-testid="button-signup"
                 >
                   SIGN UP
                 </Button>
               </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="signin-panel"
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="absolute right-0 top-0 w-1/2 h-full bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-500 text-white flex flex-col items-center justify-center p-12 z-10"
-              style={{
-                clipPath: "polygon(15% 0, 100% 0, 100% 100%, 0% 100%)",
-              }}
-            >
-              <div className="space-y-6 max-w-md text-center">
-                <h2 className="text-4xl font-bold">One of us?</h2>
-                <p className="text-lg text-indigo-100">
-                  Welcome back! Sign in to continue your journey with us.
+              <div className="space-y-4">
+                <p className="text-center text-sm text-muted-foreground">
+                  Or sign up with social platforms
                 </p>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  onClick={() => setMode("signin")}
-                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-indigo-600 transition-all duration-300 px-12 rounded-full"
-                  data-testid="button-signin-cta"
-                >
-                  SIGN IN
-                </Button>
+                <div className="flex justify-center gap-4">
+                  <button
+                    className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
+                    data-testid="button-google-signup"
+                    aria-label="Sign up with Google"
+                  >
+                    <SiGoogle className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
+                    data-testid="button-facebook-signup"
+                    aria-label="Sign up with Facebook"
+                  >
+                    <SiFacebook className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
+                    data-testid="button-twitter-signup"
+                    aria-label="Sign up with X (Twitter)"
+                  >
+                    <SiX className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
+                    data-testid="button-linkedin-signup"
+                    aria-label="Sign up with LinkedIn"
+                  >
+                    <SiLinkedin className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
+        </motion.div>
 
-        {/* Right Panel - Sign In Form */}
+        {/* Right Panel */}
         <motion.div
-          animate={{ x: mode === "signin" ? "50%" : "0%" }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="absolute right-0 top-0 w-1/2 h-full bg-background flex flex-col items-center justify-center p-12"
+          initial={false}
+          animate={{
+            background: mode === "signup"
+              ? "linear-gradient(135deg, rgb(99, 102, 241), rgb(168, 85, 247), rgb(59, 130, 246))"
+              : "transparent",
+          }}
+          transition={{ duration: 0.5 }}
+          className={cn(
+            "relative flex flex-col items-center justify-center p-12",
+            mode === "signin" ? "bg-background text-foreground" : "text-white"
+          )}
+          style={{
+            clipPath: mode === "signup" ? "polygon(15% 0, 100% 0, 100% 100%, 0% 100%)" : "none",
+          }}
         >
-          <div className="w-full max-w-md space-y-8">
-            <h1 className="text-4xl font-bold text-center text-foreground">
-              {mode === "signin" ? "Sign in" : "Sign up"}
-            </h1>
-
-            {mode === "signin" ? (
+          {mode === "signin" ? (
+            <motion.div
+              key="signin-form"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4 }}
+              className="w-full max-w-md space-y-8"
+            >
+              <h1 className="text-4xl font-bold text-center">Sign in</h1>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
@@ -193,82 +271,66 @@ export default function AuthSwitch() {
                   </Button>
                 </form>
               </Form>
-            ) : (
               <div className="space-y-4">
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
-                  <Input
-                    type="text"
-                    placeholder="Username"
-                    className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
-                    data-testid="input-username"
-                  />
+                <p className="text-center text-sm text-muted-foreground">
+                  Or sign in with social platforms
+                </p>
+                <div className="flex justify-center gap-4">
+                  <button
+                    className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
+                    data-testid="button-google"
+                    aria-label="Sign in with Google"
+                  >
+                    <SiGoogle className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
+                    data-testid="button-facebook"
+                    aria-label="Sign in with Facebook"
+                  >
+                    <SiFacebook className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
+                    data-testid="button-twitter"
+                    aria-label="Sign in with X (Twitter)"
+                  >
+                    <SiX className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
+                    data-testid="button-linkedin"
+                    aria-label="Sign in with LinkedIn"
+                  >
+                    <SiLinkedin className="w-5 h-5" />
+                  </button>
                 </div>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
-                  <Input
-                    type="email"
-                    placeholder="Email"
-                    className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
-                    data-testid="input-signup-email"
-                  />
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500" />
-                  <Input
-                    type="password"
-                    placeholder="Password"
-                    className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
-                    data-testid="input-signup-password"
-                  />
-                </div>
-                <Button
-                  onClick={handleSignUpClick}
-                  size="lg"
-                  className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-base font-semibold"
-                  data-testid="button-signup"
-                >
-                  SIGN UP
-                </Button>
               </div>
-            )}
-
-            <div className="space-y-4">
-              <p className="text-center text-sm text-muted-foreground">
-                Or sign {mode === "signin" ? "in" : "up"} with social platforms
+            </motion.div>
+          ) : (
+            <motion.div
+              key="signin-cta"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6 max-w-md text-center"
+            >
+              <h2 className="text-4xl font-bold">One of us?</h2>
+              <p className="text-lg text-indigo-100">
+                Welcome back! Sign in to continue your journey with us.
               </p>
-              <div className="flex justify-center gap-4">
-                <button
-                  className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                  data-testid="button-google"
-                  aria-label="Sign in with Google"
-                >
-                  <SiGoogle className="w-5 h-5 text-foreground" />
-                </button>
-                <button
-                  className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                  data-testid="button-facebook"
-                  aria-label="Sign in with Facebook"
-                >
-                  <SiFacebook className="w-5 h-5 text-foreground" />
-                </button>
-                <button
-                  className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                  data-testid="button-twitter"
-                  aria-label="Sign in with X (Twitter)"
-                >
-                  <SiX className="w-5 h-5 text-foreground" />
-                </button>
-                <button
-                  className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover-elevate transition-all"
-                  data-testid="button-linkedin"
-                  aria-label="Sign in with LinkedIn"
-                >
-                  <SiLinkedin className="w-5 h-5 text-foreground" />
-                </button>
-              </div>
-            </div>
-          </div>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => setMode("signin")}
+                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-indigo-600 transition-all duration-300 px-12 rounded-full"
+                data-testid="button-signin-cta"
+              >
+                SIGN IN
+              </Button>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </div>
