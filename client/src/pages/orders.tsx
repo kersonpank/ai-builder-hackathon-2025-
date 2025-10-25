@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShoppingCart, Package, Truck, CheckCircle, XCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { ShoppingCart, Package, Truck, CheckCircle, XCircle, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,9 +27,23 @@ const statusConfig = {
 
 export default function Orders() {
   const { toast } = useToast();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newOrder, setNewOrder] = useState({
+    customerName: "",
+    customerEmail: "",
+    customerPhone: "",
+    shippingAddress: "",
+    paymentMethod: "pix",
+    items: [] as Array<{ productId: string; quantity: number; price: number }>,
+    total: 0,
+  });
 
   const { data: orders = [], isLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
+  });
+
+  const { data: products = [] } = useQuery<any[]>({
+    queryKey: ["/api/products"],
   });
 
   const updateStatusMutation = useMutation({
@@ -49,13 +68,181 @@ export default function Orders() {
     },
   });
 
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: JSON.stringify(orderData),
+      });
+      if (!response.ok) throw new Error("Erro ao criar pedido");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      toast({ title: "Pedido criado com sucesso!" });
+      setIsCreateDialogOpen(false);
+      setNewOrder({
+        customerName: "",
+        customerEmail: "",
+        customerPhone: "",
+        shippingAddress: "",
+        paymentMethod: "pix",
+        items: [],
+        total: 0,
+      });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Erro ao criar pedido" });
+    },
+  });
+
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold">Pedidos</h1>
-        <p className="text-muted-foreground mt-2">
-          Gerencie pedidos e atualize status de entrega
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-4xl font-bold">Pedidos</h1>
+          <p className="text-muted-foreground mt-2">
+            Gerencie pedidos e atualize status de entrega
+          </p>
+        </div>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button data-testid="button-create-order">
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Pedido (PDV)
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-create-order">
+            <DialogHeader>
+              <DialogTitle>Criar Pedido Manual (PDV)</DialogTitle>
+              <DialogDescription>
+                Campos que o agente IA deve coletar para processar um pedido completo
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Informações do Cliente</h4>
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customerName">Nome Completo *</Label>
+                    <Input
+                      id="customerName"
+                      value={newOrder.customerName}
+                      onChange={(e) => setNewOrder({ ...newOrder, customerName: e.target.value })}
+                      placeholder="Nome do cliente"
+                      data-testid="input-customer-name"
+                    />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="customerEmail">E-mail</Label>
+                      <Input
+                        id="customerEmail"
+                        type="email"
+                        value={newOrder.customerEmail}
+                        onChange={(e) => setNewOrder({ ...newOrder, customerEmail: e.target.value })}
+                        placeholder="email@exemplo.com"
+                        data-testid="input-customer-email"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="customerPhone">Telefone *</Label>
+                      <Input
+                        id="customerPhone"
+                        value={newOrder.customerPhone}
+                        onChange={(e) => setNewOrder({ ...newOrder, customerPhone: e.target.value })}
+                        placeholder="(11) 98888-8888"
+                        data-testid="input-customer-phone"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Endereço de Entrega *</h4>
+                <div className="space-y-2">
+                  <Textarea
+                    value={newOrder.shippingAddress}
+                    onChange={(e) => setNewOrder({ ...newOrder, shippingAddress: e.target.value })}
+                    placeholder="Rua, número, complemento, bairro, cidade - estado, CEP"
+                    rows={3}
+                    data-testid="textarea-shipping-address"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A IA deve coletar: CEP, rua, número, complemento, bairro, cidade, estado
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Método de Pagamento *</h4>
+                <Select
+                  value={newOrder.paymentMethod}
+                  onValueChange={(value) => setNewOrder({ ...newOrder, paymentMethod: value })}
+                >
+                  <SelectTrigger data-testid="select-payment-method">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                    <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                    <SelectItem value="cash">Dinheiro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="font-semibold text-sm">Produtos do Pedido *</h4>
+                <p className="text-xs text-muted-foreground">
+                  A IA deve confirmar: nome do produto, quantidade, e calcular o total automaticamente
+                </p>
+                <div className="p-4 bg-muted rounded-lg space-y-2">
+                  <div className="text-sm font-medium">Exemplo de fluxo da IA:</div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>1. "Qual produto você gostaria de comprar?"</p>
+                    <p>2. "Quantas unidades de [Produto]?"</p>
+                    <p>3. "Mais algum produto?" (loop até cliente dizer não)</p>
+                    <p>4. Calcular e confirmar: "Total: R$ XX,XX. Confirma?"</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-2">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  Campos Obrigatórios para Pedido
+                </h4>
+                <ul className="text-xs space-y-1 text-muted-foreground">
+                  <li>✓ Nome completo do cliente</li>
+                  <li>✓ Telefone para contato</li>
+                  <li>✓ Endereço completo de entrega (CEP, rua, número, cidade, estado)</li>
+                  <li>✓ Método de pagamento</li>
+                  <li>✓ Lista de produtos com quantidades</li>
+                  <li>✓ Confirmação do valor total</li>
+                </ul>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={() => {
+                  toast({
+                    title: "Documentação de campos",
+                    description: "Esta tela serve para documentar os campos que a IA deve coletar. Implementação do fluxo de pedidos em andamento.",
+                  });
+                }}
+                data-testid="button-save-order"
+              >
+                Salvar Pedido
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {isLoading ? (
