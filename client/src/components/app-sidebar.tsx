@@ -1,4 +1,4 @@
-import { Home, Package, ShoppingCart, MessageSquare, Settings, LogOut, Building2, Bot } from "lucide-react";
+import { Home, Package, ShoppingCart, MessageSquare, Settings, LogOut, Building2, Bot, FileText } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   Sidebar,
@@ -25,6 +25,7 @@ const userMenuItems = [
 const adminMenuItems = [
   { title: "Dashboard", url: "/admin/dashboard", icon: Home },
   { title: "Empresas", url: "/admin/companies", icon: Building2 },
+  { title: "Logs", url: "/admin/logs", icon: FileText },
 ];
 
 export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {

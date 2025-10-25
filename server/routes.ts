@@ -317,6 +317,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true });
   });
 
+  // Get API logs (admin only)
+  app.get("/api/admin/logs", requireAdminAuth, async (req, res) => {
+    const { type, companyId, limit } = req.query;
+    let logs;
+    
+    if (type && typeof type === 'string') {
+      logs = await storage.getApiLogsByType(type, limit ? Number(limit) : 100);
+    } else if (companyId && typeof companyId === 'string') {
+      logs = await storage.getApiLogsByCompany(companyId, limit ? Number(limit) : 100);
+    } else {
+      logs = await storage.getApiLogs(limit ? Number(limit) : 100);
+    }
+    
+    res.json(logs);
+  });
+
   // ============ USER ROUTES ============
 
   // Get current company
@@ -894,19 +910,45 @@ Seu objetivo é:
         content: m.content,
       }));
 
+      // Prepare OpenAI messages
+      const openaiMessages = [
+        { role: "system" as const, content: systemPrompt },
+        ...conversationHistory,
+        { role: "user" as const, content },
+      ];
+
       // Call OpenAI
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...conversationHistory,
-          { role: "user", content },
-        ],
+        messages: openaiMessages,
         max_tokens: 500,
         temperature: 0.8,
       });
 
       const assistantMessage = completion.choices[0].message.content || "Desculpe, não consegui processar sua mensagem.";
+
+      // Log OpenAI prompt for admin monitoring
+      await storage.createApiLog({
+        companyId,
+        type: 'openai_prompt',
+        endpoint: '/v1/chat/completions',
+        method: 'POST',
+        requestData: {
+          model: "gpt-3.5-turbo",
+          messages: openaiMessages,
+          max_tokens: 500,
+          temperature: 0.8,
+        },
+        responseData: {
+          message: assistantMessage,
+          model: completion.model,
+          usage: completion.usage,
+        },
+        metadata: {
+          conversationId,
+          userMessage: content.substring(0, 100), // First 100 chars for context
+        },
+      });
 
       // Detect products mentioned in the response using [Product Name] format
       const productRegex = /\[([^\]]+)\]/g;
@@ -954,6 +996,22 @@ Seu objetivo é:
         companyId,
       });
       const order = await storage.createOrder(data);
+      
+      // Log order creation for admin monitoring
+      await storage.createApiLog({
+        companyId,
+        type: 'order_created',
+        endpoint: '/api/chatweb/:companyId/orders',
+        method: 'POST',
+        requestData: data,
+        responseData: order,
+        metadata: {
+          confirmationCode: order.confirmationCode,
+          total: order.total,
+          customerName: order.customerName,
+        },
+      });
+      
       // Return order with confirmation code
       res.json({ 
         ...order, 

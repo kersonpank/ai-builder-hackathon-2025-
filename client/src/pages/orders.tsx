@@ -279,6 +279,11 @@ export default function Orders() {
                           <Icon className="w-3 h-3" />
                           {config.label}
                         </Badge>
+                        {order.confirmationCode && (
+                          <Badge variant="outline" className="font-mono">
+                            Código: {order.confirmationCode}
+                          </Badge>
+                        )}
                       </CardTitle>
                       <CardDescription>
                         {format(new Date(order.createdAt), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}

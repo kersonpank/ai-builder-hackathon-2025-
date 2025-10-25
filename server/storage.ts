@@ -1,6 +1,6 @@
 import { db } from './db';
 import { 
-  adminUsers, companies, users, agents, products, orders, conversations, messages, channels,
+  adminUsers, companies, users, agents, products, orders, conversations, messages, channels, apiLogs,
   type InsertAdminUser, type AdminUser,
   type InsertCompany, type Company,
   type InsertUser, type User,
@@ -10,6 +10,7 @@ import {
   type InsertConversation, type Conversation,
   type InsertMessage, type Message,
   type InsertChannel, type Channel,
+  type InsertApiLog, type ApiLog,
 } from '@shared/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 
@@ -68,6 +69,12 @@ export interface IStorage {
   getChannelByCompany(companyId: string): Promise<Channel | undefined>;
   createChannel(data: InsertChannel): Promise<Channel>;
   updateChannel(companyId: string, data: Partial<InsertChannel>): Promise<Channel | undefined>;
+  
+  // API Logs
+  createApiLog(data: InsertApiLog): Promise<ApiLog>;
+  getApiLogs(limit?: number): Promise<ApiLog[]>;
+  getApiLogsByCompany(companyId: string, limit?: number): Promise<ApiLog[]>;
+  getApiLogsByType(type: string, limit?: number): Promise<ApiLog[]>;
   
   // Analytics (for dashboard)
   getCompanyStats(companyId: string): Promise<{
@@ -322,6 +329,30 @@ export class DbStorage implements IStorage {
       updatedAt: new Date() 
     }).where(eq(channels.companyId, companyId)).returning();
     return result[0];
+  }
+
+  // API Logs
+  async createApiLog(data: InsertApiLog): Promise<ApiLog> {
+    const result = await db.insert(apiLogs).values(data).returning();
+    return result[0];
+  }
+
+  async getApiLogs(limit: number = 100): Promise<ApiLog[]> {
+    return db.select().from(apiLogs).orderBy(desc(apiLogs.createdAt)).limit(limit);
+  }
+
+  async getApiLogsByCompany(companyId: string, limit: number = 100): Promise<ApiLog[]> {
+    return db.select().from(apiLogs)
+      .where(eq(apiLogs.companyId, companyId))
+      .orderBy(desc(apiLogs.createdAt))
+      .limit(limit);
+  }
+
+  async getApiLogsByType(type: string, limit: number = 100): Promise<ApiLog[]> {
+    return db.select().from(apiLogs)
+      .where(eq(apiLogs.type, type))
+      .orderBy(desc(apiLogs.createdAt))
+      .limit(limit);
   }
 
   // Analytics

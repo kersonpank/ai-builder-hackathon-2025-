@@ -11,6 +11,7 @@ import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
+import AdminLogs from "@/pages/admin-logs";
 import Onboarding from "@/pages/onboarding";
 import Dashboard from "@/pages/dashboard";
 import Agent from "@/pages/agent";
@@ -162,6 +163,19 @@ function Router() {
             component={() => (
               <AuthenticatedLayout isAdmin>
                 <AdminDashboard />
+              </AuthenticatedLayout>
+            )}
+            adminOnly
+          />
+        )}
+      </Route>
+      
+      <Route path="/admin/logs">
+        {() => (
+          <ProtectedRoute
+            component={() => (
+              <AuthenticatedLayout isAdmin>
+                <AdminLogs />
               </AuthenticatedLayout>
             )}
             adminOnly

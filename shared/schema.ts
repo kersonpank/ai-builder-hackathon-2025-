@@ -155,3 +155,20 @@ export const channels = pgTable("channels", {
 export const insertChannelSchema = createInsertSchema(channels).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertChannel = z.infer<typeof insertChannelSchema>;
 export type Channel = typeof channels.$inferSelect;
+
+// API Logs table (for admin monitoring)
+export const apiLogs = pgTable("api_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").references(() => companies.id, { onDelete: 'cascade' }),
+  type: text("type").notNull(), // "openai_prompt", "api_request", "order_created", etc.
+  endpoint: text("endpoint"), // API endpoint called
+  method: text("method"), // GET, POST, etc.
+  requestData: jsonb("request_data"), // Request payload
+  responseData: jsonb("response_data"), // Response data
+  metadata: jsonb("metadata"), // Additional context (user agent, IP, etc.)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertApiLogSchema = createInsertSchema(apiLogs).omit({ id: true, createdAt: true });
+export type InsertApiLog = z.infer<typeof insertApiLogSchema>;
+export type ApiLog = typeof apiLogs.$inferSelect;
