@@ -199,6 +199,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload product images (max 3)
+  app.post("/api/products/:id/images", requireAuth, upload.array('images', 3), async (req: AuthRequest, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "Nenhuma imagem enviada" });
+      }
+
+      if (files.length > 3) {
+        return res.status(400).json({ error: "Máximo de 3 imagens permitidas" });
+      }
+
+      const companyId = req.user!.companyId!;
+      const productId = req.params.id;
+      
+      // Verify product belongs to company
+      const product = await storage.getProduct(productId, companyId);
+      if (!product) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
+
+      const publicDir = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(',')[0];
+      if (!publicDir) {
+        throw new Error('Object storage not configured');
+      }
+
+      // Ensure directory exists
+      await mkdir(publicDir, { recursive: true });
+
+      // Process and save each image
+      const imageUrls: string[] = [];
+      for (const file of files) {
+        // Resize to 800x800 for product images
+        const resizedImage = await sharp(file.buffer)
+          .resize(800, 800, { fit: 'inside' })
+          .jpeg({ quality: 85 })
+          .toBuffer();
+
+        const filename = `product-${productId}-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
+        const filepath = join(publicDir, filename);
+        
+        await writeFile(filepath, resizedImage);
+        imageUrls.push(`/public/${filename}`);
+      }
+
+      // Update product with new image URLs
+      await storage.updateProduct(productId, companyId, { imageUrls });
+
+      res.json({ imageUrls });
+    } catch (error) {
+      console.error('Product images upload error:', error);
+      res.status(500).json({ error: "Erro ao fazer upload das imagens" });
+    }
+  });
+
   // ============ ADMIN ROUTES ============
   
   // Get all companies (admin only)
