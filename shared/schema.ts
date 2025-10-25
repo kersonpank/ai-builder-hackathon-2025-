@@ -77,6 +77,8 @@ export const products = pgTable("products", {
   category: text("category"),
   imageUrls: text("image_urls").array(), // array of image URLs (max 3)
   stock: integer("stock").notNull().default(0),
+  status: text("status").notNull().default("published"), // "draft" or "published"
+  source: text("source").notNull().default("manual"), // "manual" or "bulk_import"
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

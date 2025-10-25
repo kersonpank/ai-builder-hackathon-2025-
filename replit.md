@@ -19,6 +19,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**October 25, 2025 - Bulk Product Import with AI**
+- **Bulk import feature**: New workflow for mass product upload via PDF, XML, or TXT files
+  - **AI-powered extraction**: OpenAI GPT-4o-mini extracts product data (name, description, price, category, stock) from uploaded documents
+  - **Draft workflow**: Imported products saved as "draft" status for review before publishing
+  - **Review interface**: New /product-drafts page for product-by-product review and editing
+  - **Database schema**: Added `status` (draft/published) and `source` (manual/bulk_import) fields to products table
+  - **Backend endpoints**:
+    - POST /api/products/bulk-import - Upload file, extract with AI, save as drafts
+    - GET /api/products/drafts - Fetch all draft products for review
+    - POST /api/products/:id/publish - Publish individual product
+    - POST /api/products/publish-all - Publish all drafts at once
+  - **Frontend flow**:
+    - "Importação em Massa" button in products page with file upload dialog
+    - Auto-navigation to review page after successful import
+    - Edit fields (name, description, price, category, stock) with proper type conversions
+    - Add up to 3 images per product during review
+    - Approve products individually or all at once
+  - **User flow**: Upload file → AI extracts products → Review/edit/add images → Publish → Products go live
+
 **October 25, 2025 - Advanced Agent Configuration Dashboard**
 - **New Agent configuration page**: Added comprehensive /agent dashboard section for seller personality and behavior settings
   - **Seller personality presets**: 3 distinct profiles with visual selection

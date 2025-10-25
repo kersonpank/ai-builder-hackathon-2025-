@@ -40,11 +40,13 @@ export interface IStorage {
   
   // Products
   getProductsByCompany(companyId: string): Promise<Product[]>;
+  getProductsByCompanyAndStatus(companyId: string, status: string): Promise<Product[]>;
   getProduct(id: string, companyId: string): Promise<Product | undefined>;
   createProduct(data: InsertProduct): Promise<Product>;
   updateProduct(id: string, companyId: string, data: Partial<InsertProduct>): Promise<Product | undefined>;
   deleteProduct(id: string, companyId: string): Promise<void>;
   createProductsBulk(data: InsertProduct[]): Promise<Product[]>;
+  updateProductStatus(id: string, companyId: string, status: string): Promise<Product | undefined>;
   
   // Orders
   getOrdersByCompany(companyId: string): Promise<Order[]>;
@@ -168,6 +170,12 @@ export class DbStorage implements IStorage {
     return db.select().from(products).where(eq(products.companyId, companyId)).orderBy(desc(products.createdAt));
   }
 
+  async getProductsByCompanyAndStatus(companyId: string, status: string): Promise<Product[]> {
+    return db.select().from(products).where(
+      and(eq(products.companyId, companyId), eq(products.status, status))
+    ).orderBy(desc(products.createdAt));
+  }
+
   async getProduct(id: string, companyId: string): Promise<Product | undefined> {
     const result = await db.select().from(products).where(
       and(eq(products.id, id), eq(products.companyId, companyId))
@@ -199,6 +207,16 @@ export class DbStorage implements IStorage {
   async createProductsBulk(data: InsertProduct[]): Promise<Product[]> {
     if (data.length === 0) return [];
     return db.insert(products).values(data).returning();
+  }
+
+  async updateProductStatus(id: string, companyId: string, status: string): Promise<Product | undefined> {
+    const result = await db.update(products).set({ 
+      status, 
+      updatedAt: new Date() 
+    }).where(
+      and(eq(products.id, id), eq(products.companyId, companyId))
+    ).returning();
+    return result[0];
   }
 
   // Orders

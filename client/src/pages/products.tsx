@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Edit, Trash2, Sparkles, Package, ImageIcon, X } from "lucide-react";
+import { Plus, Edit, Trash2, Sparkles, Package, ImageIcon, X, FileUp, FileCheck2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import type { Product } from "@shared/schema";
 
 const productSchema = z.object({
@@ -28,12 +30,20 @@ type ProductForm = z.infer<typeof productSchema>;
 
 export default function Products() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [bulkImportFile, setBulkImportFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [generatingDescription, setGeneratingDescription] = useState(false);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+
+  const { data: drafts = [] } = useQuery<Product[]>({
+    queryKey: ["/api/products/drafts"],
+  });
 
   const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -246,6 +256,51 @@ export default function Products() {
     setIsDialogOpen(true);
   };
 
+  const handleBulkImport = async () => {
+    if (!bulkImportFile) return;
+
+    setIsImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', bulkImportFile);
+
+      const response = await fetch("/api/products/bulk-import", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("auth_token")}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao importar produtos");
+      }
+
+      const result = await response.json();
+      
+      toast({
+        title: "Importação concluída!",
+        description: `${result.count} produto(s) importado(s). Revise e publique.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/products/drafts"] });
+      setIsBulkImportOpen(false);
+      setBulkImportFile(null);
+      
+      // Navigate to drafts page
+      setLocation("/product-drafts");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro na importação",
+        description: error.message || "Não foi possível processar o arquivo",
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
@@ -255,10 +310,80 @@ export default function Products() {
             Gerencie seus produtos e o que o agente pode recomendar
           </p>
         </div>
-        <Button onClick={openCreateDialog} data-testid="button-add-product">
-          <Plus className="w-4 h-4 mr-2" />
-          Adicionar Produto
-        </Button>
+        <div className="flex gap-2">
+          {drafts.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setLocation("/product-drafts")}
+              data-testid="button-view-drafts"
+            >
+              <FileCheck2 className="w-4 h-4 mr-2" />
+              Rascunhos ({drafts.length})
+            </Button>
+          )}
+          <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" data-testid="button-bulk-import">
+                <FileUp className="w-4 h-4 mr-2" />
+                Importação em Massa
+              </Button>
+            </DialogTrigger>
+            <DialogContent data-testid="dialog-bulk-import">
+              <DialogHeader>
+                <DialogTitle>Importação em Massa de Produtos</DialogTitle>
+                <DialogDescription>
+                  Faça upload de um arquivo PDF, XML ou TXT com informações dos produtos. A IA irá extrair e estruturar os dados para você revisar.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="file-upload">Arquivo do catálogo</Label>
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".pdf,.xml,.txt"
+                    onChange={(e) => setBulkImportFile(e.target.files?.[0] || null)}
+                    data-testid="input-bulk-file"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Formatos aceitos: PDF, XML, TXT (máx. 10MB)
+                  </p>
+                </div>
+                {bulkImportFile && (
+                  <div className="p-3 bg-muted rounded-md">
+                    <p className="text-sm font-medium">{bulkImportFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(bulkImportFile.size / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={handleBulkImport}
+                  disabled={!bulkImportFile || isImporting}
+                  data-testid="button-start-import"
+                >
+                  {isImporting ? (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                      Processando com IA...
+                    </>
+                  ) : (
+                    <>
+                      <FileUp className="w-4 h-4 mr-2" />
+                      Importar Produtos
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Button onClick={openCreateDialog} data-testid="button-add-product">
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Produto
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
