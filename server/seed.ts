@@ -9,7 +9,7 @@ async function seed() {
   try {
     // Create admin user
     console.log('Creating admin user...');
-    const adminPassword = await hashPassword('admin123');
+    const adminPassword = await hashPassword('123456789');
     await db.insert(adminUsers).values({
       email: 'admin@omni.ai',
       password: adminPassword,
