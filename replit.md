@@ -19,14 +19,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**October 25, 2025 - CPF/CNPJ Support**
-- Added support for both CPF and CNPJ in company registration and login
-- Database: Renamed `cnpj` column to `cpfCnpj` in companies table (ALTER TABLE migration)
-- Backend: Updated all methods from `getCompanyByCNPJ` to `getCompanyByCpfCnpj`
-- Frontend: Updated onboarding, login, and admin dashboard forms to accept both formats
+**October 25, 2025 - Login Simplification and Logo Upload**
+- **Login simplified**: Removed CPF/CNPJ requirement from login page, now uses only email/password
+  - Backend: Added `getUserByEmailOnly` method for global email authentication
+  - Frontend: Updated login.tsx to remove CPF/CNPJ field
+  - Improved UX: Users no longer need to remember their registration document
+- **Logo upload implemented**: Added company logo upload to onboarding Step 1
+  - Automatic image resizing to 200x200px using Sharp library
+  - Storage: Logos saved to object storage public directory
+  - Database persistence: Logo URL stored in companies.logoUrl field via updateCompanyLogo method
+  - Frontend: Preview shown during upload, logo displayed in ChatWeb header
+  - Fallback: Company name initial shown when no logo is uploaded
+- **Bug fixes**: Fixed apiRequest calls in onboarding.tsx and login.tsx
+- **Admin credentials**: Admin password updated to 123456789 (admin@omni.ai)
+
+**Previous Session - CPF/CNPJ Support**
+- Added support for both CPF and CNPJ in company registration
+- Database: Renamed `cnpj` column to `cpfCnpj` in companies table
 - Validation: Minimum length changed from 14 to 11 characters to accommodate CPF
-- Bug fix: Corrected apiRequest calls from object syntax to positional parameters in onboarding.tsx and login.tsx
-- Testing: E2E test passed - registration flow confirmed working from Step 1 to Step 2
+- Testing: E2E test passed - registration flow confirmed working
 
 ## System Architecture
 
