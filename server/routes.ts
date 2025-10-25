@@ -700,7 +700,8 @@ ${extractedText.substring(0, 15000)}`;
   app.get("/api/chatweb/:companyId/products", async (req, res) => {
     const { companyId } = req.params;
     const products = await storage.getProductsByCompany(companyId);
-    const activeProducts = products.filter(p => p.isActive);
+    // Only show published AND active products
+    const activeProducts = products.filter(p => p.isActive && p.status === 'published');
     res.json(activeProducts);
   });
 
@@ -738,7 +739,8 @@ ${extractedText.substring(0, 15000)}`;
       const company = await storage.getCompany(companyId);
       const agent = await storage.getAgentByCompany(companyId);
       const products = await storage.getProductsByCompany(companyId);
-      const activeProducts = products.filter(p => p.isActive);
+      // Only use published AND active products for AI context
+      const activeProducts = products.filter(p => p.isActive && p.status === 'published');
 
       // Build system prompt
       const toneInstructions = {

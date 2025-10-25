@@ -52,6 +52,10 @@ export default function Agent() {
     queryKey: ["/api/agent"],
   });
 
+  const { data: company } = useQuery<any>({
+    queryKey: ["/api/company"],
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     toneOfVoice: "",
@@ -136,11 +140,36 @@ export default function Agent() {
 
   return (
     <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold">Configuração do Agente</h1>
-        <p className="text-muted-foreground mt-2">
-          Configure a personalidade e comportamento do seu assistente de vendas
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-4xl font-bold">Configuração do Agente</h1>
+          <p className="text-muted-foreground mt-2">
+            Configure a personalidade e comportamento do seu assistente de vendas
+          </p>
+        </div>
+        {company && (
+          <Card className="w-64">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Informações da Empresa</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm">
+              <div>
+                <span className="text-muted-foreground">Nome:</span>
+                <p className="font-medium">{company.name}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Segmento:</span>
+                <p className="font-medium">{company.segment}</p>
+              </div>
+              {company.cpfCnpj && (
+                <div>
+                  <span className="text-muted-foreground">Documento:</span>
+                  <p className="font-mono text-xs">{company.cpfCnpj}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
