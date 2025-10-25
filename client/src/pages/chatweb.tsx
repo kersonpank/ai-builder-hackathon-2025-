@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, Bot, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -116,6 +116,9 @@ export default function ChatWeb() {
       <div className="bg-card border-b px-6 py-4 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center gap-4">
           <Avatar className="h-12 w-12">
+            {company.logoUrl && (
+              <AvatarImage src={company.logoUrl} alt={company.name} />
+            )}
             <AvatarFallback className="bg-primary text-primary-foreground text-lg">
               {company.name.charAt(0)}
             </AvatarFallback>
