@@ -21,7 +21,7 @@ export const companies = pgTable("companies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   segment: text("segment").notNull(), // e.g., "E-commerce", "Serviços", "Alimentação"
-  cnpj: text("cnpj").notNull().unique(),
+  cpfCnpj: text("cpf_cnpj").notNull().unique(), // Can be CPF or CNPJ
   logoUrl: text("logo_url"),
   status: text("status").notNull().default("active"), // active, suspended, trial
   createdAt: timestamp("created_at").notNull().defaultNow(),

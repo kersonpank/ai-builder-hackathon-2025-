@@ -21,7 +21,7 @@ async function seed() {
     const [demoCompany1] = await db.insert(companies).values({
       name: 'Boutique Moda Bella',
       segment: 'Moda e Vestuário',
-      cnpj: '12.345.678/0001-90',
+      cpfCnpj: '12.345.678/0001-90',
       status: 'active',
     }).returning().onConflictDoNothing();
 
@@ -233,7 +233,7 @@ async function seed() {
     console.log('   Email: admin@omni.ai');
     console.log('   Password: admin123');
     console.log('\n🏢 Demo Company Login:');
-    console.log('   CNPJ: 12.345.678/0001-90');
+    console.log('   CPF/CNPJ: 12.345.678/0001-90');
     console.log('   Email: maria@modabella.com');
     console.log('   Password: demo123');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');

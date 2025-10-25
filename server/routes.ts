@@ -55,9 +55,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { company, user } = schema.parse(req.body);
 
       // Check if company already exists
-      const existingCompany = await storage.getCompanyByCNPJ(company.cnpj);
+      const existingCompany = await storage.getCompanyByCpfCnpj(company.cpfCnpj);
       if (existingCompany) {
-        return res.status(400).json({ error: "CNPJ já cadastrado" });
+        return res.status(400).json({ error: "CPF/CNPJ já cadastrado" });
       }
 
       // Create company
@@ -107,13 +107,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User Login
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password, cnpj } = z.object({
+      const { email, password, cpfCnpj } = z.object({
         email: z.string().email(),
         password: z.string(),
-        cnpj: z.string(),
+        cpfCnpj: z.string(),
       }).parse(req.body);
 
-      const company = await storage.getCompanyByCNPJ(cnpj);
+      const company = await storage.getCompanyByCpfCnpj(cpfCnpj);
       if (!company) {
         return res.status(401).json({ error: "Empresa não encontrada" });
       }

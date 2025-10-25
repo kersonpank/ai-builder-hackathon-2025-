@@ -21,7 +21,7 @@ export interface IStorage {
   // Companies
   getAllCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
-  getCompanyByCNPJ(cnpj: string): Promise<Company | undefined>;
+  getCompanyByCpfCnpj(cpfCnpj: string): Promise<Company | undefined>;
   createCompany(data: InsertCompany): Promise<Company>;
   updateCompany(id: string, data: Partial<InsertCompany>): Promise<Company | undefined>;
   deleteCompany(id: string): Promise<void>;
@@ -96,8 +96,8 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async getCompanyByCNPJ(cnpj: string): Promise<Company | undefined> {
-    const result = await db.select().from(companies).where(eq(companies.cnpj, cnpj));
+  async getCompanyByCpfCnpj(cpfCnpj: string): Promise<Company | undefined> {
+    const result = await db.select().from(companies).where(eq(companies.cpfCnpj, cpfCnpj));
     return result[0];
   }
 
