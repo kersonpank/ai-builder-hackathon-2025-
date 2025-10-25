@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Building2, Bot, Package, Share2 } from "lucide-react";
+import { CheckCircle2, Building2, Bot, Package, Share2, Upload, ImageIcon } from "lucide-react";
 
 const segments = [
   "E-commerce",
@@ -70,6 +70,9 @@ export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [companyData, setCompanyData] = useState<any>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const step1Form = useForm<Step1Form>({
     resolver: zodResolver(step1Schema),
@@ -97,11 +100,17 @@ export default function Onboarding() {
       const response = await apiRequest("POST", "/api/auth/register", data);
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("user_type", "user");
       localStorage.setItem("company_id", data.company.id);
       setCompanyData(data.company);
+      
+      // Upload logo if selected
+      if (logoFile) {
+        await uploadLogo(data.token);
+      }
+      
       setCurrentStep(2);
     },
     onError: () => {
@@ -141,6 +150,51 @@ export default function Onboarding() {
       });
     },
   });
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadLogo = async (token: string) => {
+    if (!logoFile) return;
+    
+    setUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append('logo', logoFile);
+      
+      const response = await fetch('/api/company/logo', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      toast({
+        title: "Logo enviada com sucesso!",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao enviar logo",
+        description: "Você pode adicionar a logo depois no painel.",
+      });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   const onStep1Submit = (data: Step1Form) => {
     registerMutation.mutate({
@@ -299,6 +353,34 @@ export default function Onboarding() {
                         </FormItem>
                       )}
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <FormLabel>Logo da Empresa (opcional)</FormLabel>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoChange}
+                          data-testid="input-logo"
+                          className="cursor-pointer"
+                        />
+                      </div>
+                      {logoPreview && (
+                        <div className="w-20 h-20 border rounded-lg overflow-hidden flex items-center justify-center bg-muted">
+                          <img src={logoPreview} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      {!logoPreview && (
+                        <div className="w-20 h-20 border border-dashed rounded-lg flex items-center justify-center bg-muted">
+                          <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      A logo será exibida no chat com seus clientes (redimensionada para 200x200px)
+                    </p>
                   </div>
 
                   <div className="border-t pt-4 mt-6">
