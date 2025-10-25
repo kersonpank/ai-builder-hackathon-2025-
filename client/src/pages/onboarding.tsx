@@ -94,12 +94,8 @@ export default function Onboarding() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: { company: any; user: any }) => {
-      const response = await apiRequest<{ token: string; user: any; company: any }>({
-        url: "/api/auth/register",
-        method: "POST",
-        body: data,
-      });
-      return response;
+      const response = await apiRequest("POST", "/api/auth/register", data);
+      return response.json();
     },
     onSuccess: (data) => {
       localStorage.setItem("auth_token", data.token);
