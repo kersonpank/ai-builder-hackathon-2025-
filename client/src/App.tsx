@@ -15,6 +15,7 @@ import Onboarding from "@/pages/onboarding";
 import Dashboard from "@/pages/dashboard";
 import Agent from "@/pages/agent";
 import Products from "@/pages/products";
+import ProductDrafts from "@/pages/product-drafts";
 import Orders from "@/pages/orders";
 import Conversations from "@/pages/conversations";
 import ChatWeb from "@/pages/chatweb";
@@ -112,6 +113,18 @@ function Router() {
             component={() => (
               <AuthenticatedLayout>
                 <Products />
+              </AuthenticatedLayout>
+            )}
+          />
+        )}
+      </Route>
+      
+      <Route path="/product-drafts">
+        {() => (
+          <ProtectedRoute
+            component={() => (
+              <AuthenticatedLayout>
+                <ProductDrafts />
               </AuthenticatedLayout>
             )}
           />

@@ -16,10 +16,13 @@ import OpenAI from "openai";
 import multer from "multer";
 import sharp from "sharp";
 import { ObjectStorageService } from "./objectStorage";
+import { parseString } from "xml2js";
+import { promisify } from "util";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const parseXML = promisify(parseString);
 
-// Configure multer for file uploads (memory storage for processing)
+// Configure multer for image uploads
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
@@ -28,6 +31,20 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error('Apenas imagens são permitidas'));
+    }
+  }
+});
+
+// Configure multer for document uploads (PDF, XML, TXT)
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for documents
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['application/pdf', 'application/xml', 'text/xml', 'text/plain'];
+    if (allowedTypes.includes(file.mimetype) || file.originalname.endsWith('.xml') || file.originalname.endsWith('.txt')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas arquivos PDF, XML ou TXT são permitidos'));
     }
   }
 });
@@ -465,6 +482,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('OpenAI error:', error);
       res.status(500).json({ error: "Erro ao gerar descrição" });
+    }
+  });
+
+  // Bulk import products from PDF/XML file using AI
+  app.post("/api/products/bulk-import", requireAuth, documentUpload.single('file'), async (req: AuthRequest, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "Nenhum arquivo foi enviado" });
+      }
+
+      let extractedText = "";
+
+      // Extract text based on file type
+      if (req.file.mimetype === 'application/pdf') {
+        const pdfParse = require('pdf-parse');
+        const pdfData = await pdfParse(req.file.buffer);
+        extractedText = pdfData.text;
+      } else if (req.file.mimetype === 'application/xml' || req.file.mimetype === 'text/xml' || req.file.originalname.endsWith('.xml')) {
+        const xmlText = req.file.buffer.toString('utf-8');
+        extractedText = xmlText;
+      } else if (req.file.mimetype === 'text/plain') {
+        extractedText = req.file.buffer.toString('utf-8');
+      } else {
+        return res.status(400).json({ error: "Formato de arquivo não suportado" });
+      }
+
+      if (!extractedText || extractedText.trim().length === 0) {
+        return res.status(400).json({ error: "Não foi possível extrair texto do arquivo" });
+      }
+
+      // Use OpenAI to extract structured product data
+      const prompt = `Você é um assistente especializado em extrair informações de produtos de documentos.
+
+Analise o seguinte texto e extraia TODOS os produtos mencionados, retornando um JSON com a seguinte estrutura:
+{
+  "products": [
+    {
+      "name": "Nome do produto",
+      "description": "Descrição breve do produto",
+      "price": preço_em_centavos (número inteiro, ex: 9990 para R$99,90),
+      "category": "Categoria do produto",
+      "stock": quantidade_em_estoque (número, use 0 se não informado)
+    }
+  ]
+}
+
+REGRAS IMPORTANTES:
+- O campo "price" DEVE ser um número inteiro em centavos (multiplique o valor em reais por 100)
+- Se o preço estiver em formato "R$ 99,90", converta para 9990
+- Se não houver categoria, use "Geral"
+- Se não houver estoque informado, use 0
+- Se não houver descrição, deixe vazio
+- Retorne APENAS o JSON, sem explicações adicionais
+
+Texto do documento:
+${extractedText.substring(0, 15000)}`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        response_format: { type: "json_object" },
+        max_tokens: 4000,
+        temperature: 0.3,
+      });
+
+      const responseContent = completion.choices[0].message.content || "{}";
+      const parsedData = JSON.parse(responseContent);
+
+      if (!parsedData.products || !Array.isArray(parsedData.products)) {
+        return res.status(400).json({ error: "Nenhum produto foi encontrado no arquivo" });
+      }
+
+      // Create products in draft status
+      const productsToCreate = parsedData.products.map((p: any) => ({
+        companyId: req.user!.companyId!,
+        name: p.name || "Produto sem nome",
+        description: p.description || null,
+        price: typeof p.price === 'number' ? p.price : 0,
+        category: p.category || "Geral",
+        stock: typeof p.stock === 'number' ? p.stock : 0,
+        imageUrls: [],
+        status: "draft",
+        source: "bulk_import",
+        isActive: false, // Don't activate until reviewed
+      }));
+
+      const createdProducts = await storage.createProductsBulk(productsToCreate);
+      
+      res.json({
+        success: true,
+        count: createdProducts.length,
+        products: createdProducts,
+      });
+    } catch (error) {
+      console.error('Bulk import error:', error);
+      res.status(500).json({ error: "Erro ao processar arquivo. Verifique o formato e tente novamente." });
+    }
+  });
+
+  // Get draft products for review
+  app.get("/api/products/drafts", requireAuth, async (req: AuthRequest, res) => {
+    const drafts = await storage.getProductsByCompanyAndStatus(req.user!.companyId!, "draft");
+    res.json(drafts);
+  });
+
+  // Publish a draft product (change status to published)
+  app.post("/api/products/:id/publish", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const product = await storage.updateProductStatus(req.params.id, req.user!.companyId!, "published");
+      if (!product) {
+        return res.status(404).json({ error: "Produto não encontrado" });
+      }
+      // Also activate the product
+      await storage.updateProduct(req.params.id, req.user!.companyId!, { isActive: true });
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao publicar produto" });
+    }
+  });
+
+  // Publish all draft products at once
+  app.post("/api/products/publish-all", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const drafts = await storage.getProductsByCompanyAndStatus(req.user!.companyId!, "draft");
+      
+      const updatePromises = drafts.map(draft => 
+        storage.updateProduct(draft.id, req.user!.companyId!, { 
+          status: "published", 
+          isActive: true 
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      res.json({ success: true, count: drafts.length });
+    } catch (error) {
+      res.status(500).json({ error: "Erro ao publicar produtos" });
     }
   });
 
