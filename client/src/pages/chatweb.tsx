@@ -5,16 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, Bot, User, Image as ImageIcon, Mic, X, ShoppingBag, Store } from "lucide-react";
+import { Send, Bot, User, Image as ImageIcon, Mic, X, ShoppingBag, Store, Headphones } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/context/CartContext";
 
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "operator";
   content: string;
   createdAt: string;
+  operatorName?: string | null;
   metadata?: {
     productImages?: Array<{
       name: string;
@@ -373,15 +374,30 @@ export default function ChatWeb() {
                   </AvatarFallback>
                 </Avatar>
               )}
+              {message.role === "operator" && (
+                <Avatar className="h-8 w-8 mt-1">
+                  <AvatarFallback className="bg-accent text-accent-foreground">
+                    <Headphones className="w-4 h-4" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
               
               <div
                 className={cn(
                   "rounded-2xl px-4 py-3 max-w-md flex flex-col gap-3",
                   message.role === "user"
                     ? "bg-primary text-primary-foreground rounded-br-sm"
+                    : message.role === "operator"
+                    ? "bg-accent border rounded-bl-sm"
                     : "bg-card border rounded-bl-sm"
                 )}
               >
+                {/* Operator name */}
+                {message.role === "operator" && message.operatorName && (
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    {message.operatorName}
+                  </p>
+                )}
                 {/* Single Product Image (new format - one per message) */}
                 {message.role === "assistant" && message.metadata && 'productImage' in message.metadata && typeof message.metadata.productImage === 'string' && (
                   <div className="rounded-lg overflow-hidden border bg-background">

@@ -77,9 +77,11 @@ export interface IStorage {
   
   // Conversations
   getConversationsByCompany(companyId: string): Promise<Conversation[]>;
+  getActiveConversations(companyId: string): Promise<Conversation[]>;
   getConversation(id: string): Promise<Conversation | undefined>;
   createConversation(data: InsertConversation): Promise<Conversation>;
   updateConversation(id: string, data: Partial<InsertConversation>): Promise<Conversation | undefined>;
+  takeoverConversation(id: string, userId: string, userName: string): Promise<void>;
   
   // Messages
   getMessagesByConversation(conversationId: string): Promise<Message[]>;
@@ -439,6 +441,24 @@ export class DbStorage implements IStorage {
       updatedAt: new Date() 
     }).where(eq(conversations.id, id)).returning();
     return result[0];
+  }
+
+  async getActiveConversations(companyId: string): Promise<Conversation[]> {
+    return db.select().from(conversations)
+      .where(and(
+        eq(conversations.companyId, companyId),
+        eq(conversations.status, 'active')
+      ))
+      .orderBy(desc(conversations.updatedAt));
+  }
+
+  async takeoverConversation(id: string, userId: string, userName: string): Promise<void> {
+    await db.update(conversations).set({
+      mode: 'human',
+      takenOverBy: userId,
+      takenOverAt: new Date(),
+      updatedAt: new Date()
+    }).where(eq(conversations.id, id));
   }
 
   // Messages

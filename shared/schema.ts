@@ -156,6 +156,9 @@ export const conversations = pgTable("conversations", {
   customerName: text("customer_name"),
   customerPhone: text("customer_phone"),
   status: text("status").notNull().default("active"), // active, closed
+  mode: text("mode").notNull().default("ai"), // ai, human, hybrid
+  takenOverBy: varchar("taken_over_by").references(() => users.id, { onDelete: 'set null' }), // user who took over
+  takenOverAt: timestamp("taken_over_at"), // when takeover happened
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -168,9 +171,11 @@ export type Conversation = typeof conversations.$inferSelect;
 export const messages = pgTable("messages", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: 'cascade' }),
-  role: text("role").notNull(), // "user", "assistant"
+  role: text("role").notNull(), // "user", "assistant", "operator"
   content: text("content").notNull(),
   metadata: jsonb("metadata"), // for product cards, buttons, etc.
+  operatorId: varchar("operator_id").references(() => users.id, { onDelete: 'set null' }), // if role=operator, who sent it
+  operatorName: text("operator_name"), // cached operator name for display
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

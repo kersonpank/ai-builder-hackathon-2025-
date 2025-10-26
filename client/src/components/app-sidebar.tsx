@@ -1,4 +1,4 @@
-import { Home, Package, ShoppingCart, MessageSquare, Settings, LogOut, Building2, Bot, FileText, Users } from "lucide-react";
+import { Home, Package, ShoppingCart, MessageSquare, Settings, LogOut, Building2, Bot, FileText, Users, Headphones } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   Sidebar,
@@ -21,6 +21,7 @@ const userMenuItems = [
   { title: "Pedidos", url: "/orders", icon: ShoppingCart },
   { title: "Clientes", url: "/customers", icon: Users },
   { title: "Conversas", url: "/conversations", icon: MessageSquare },
+  { title: "Monitor", url: "/conversations-monitor", icon: Headphones },
 ];
 
 const adminMenuItems = [

@@ -910,6 +910,65 @@ ${extractedText.substring(0, 15000)}`;
     res.json({ ...conversation, messages });
   });
 
+  // Get active conversations (for live monitoring)
+  app.get("/api/conversations/active", requireAuth, async (req: AuthRequest, res) => {
+    const conversations = await storage.getActiveConversations(req.user!.companyId!);
+    res.json(conversations);
+  });
+
+  // Takeover conversation (operator assumes control)
+  app.post("/api/conversations/:id/takeover", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation || conversation.companyId !== req.user!.companyId!) {
+        return res.status(404).json({ error: "Conversa não encontrada" });
+      }
+
+      await storage.takeoverConversation(req.params.id, req.user!.id!, req.user!.name!);
+      
+      // Send system message to chat
+      await storage.createMessage({
+        conversationId: req.params.id,
+        role: 'assistant',
+        content: `${req.user!.name} entrou na conversa`,
+        metadata: { systemMessage: true },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Takeover error:', error);
+      res.status(500).json({ error: "Erro ao assumir conversa" });
+    }
+  });
+
+  // Send message as operator
+  app.post("/api/conversations/:id/operator-message", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const conversation = await storage.getConversation(req.params.id);
+      if (!conversation || conversation.companyId !== req.user!.companyId!) {
+        return res.status(404).json({ error: "Conversa não encontrada" });
+      }
+
+      const { content } = req.body;
+      if (!content || typeof content !== 'string' || content.trim().length === 0) {
+        return res.status(400).json({ error: "Mensagem vazia" });
+      }
+
+      const message = await storage.createMessage({
+        conversationId: req.params.id,
+        role: 'operator',
+        content: content.trim(),
+        operatorId: req.user!.id!,
+        operatorName: req.user!.name!,
+      });
+
+      res.json(message);
+    } catch (error) {
+      console.error('Operator message error:', error);
+      res.status(500).json({ error: "Erro ao enviar mensagem" });
+    }
+  });
+
   // ============ CHANNEL ROUTES ============
 
   // Get channels configuration
@@ -1060,12 +1119,18 @@ ${extractedText.substring(0, 15000)}`;
       console.log('Final content to be saved:', finalContent.substring(0, 200));
 
       // Save user message
-      await storage.createMessage({
+      const userMessage = await storage.createMessage({
         conversationId,
         role: 'user',
         content: finalContent,
         metadata: null,
       });
+
+      // Check if conversation is in human mode - don't call AI if human took over
+      if (conversation.mode !== 'ai') {
+        // Just return the user message without AI response
+        return res.json(userMessage);
+      }
 
       // Get company context
       const company = await storage.getCompany(companyId);

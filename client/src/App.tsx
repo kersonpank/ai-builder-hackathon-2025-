@@ -22,6 +22,7 @@ import ProductDrafts from "@/pages/product-drafts";
 import Orders from "@/pages/orders";
 import Customers from "@/pages/customers";
 import Conversations from "@/pages/conversations";
+import ConversationsMonitor from "@/pages/conversations-monitor";
 import ChatWeb from "@/pages/chatweb";
 import Catalog from "@/pages/catalog";
 import Checkout from "@/pages/checkout";
@@ -170,6 +171,18 @@ function Router() {
             component={() => (
               <AuthenticatedLayout>
                 <Conversations />
+              </AuthenticatedLayout>
+            )}
+          />
+        )}
+      </Route>
+      
+      <Route path="/conversations-monitor">
+        {() => (
+          <ProtectedRoute
+            component={() => (
+              <AuthenticatedLayout>
+                <ConversationsMonitor />
               </AuthenticatedLayout>
             )}
           />
