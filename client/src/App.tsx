@@ -170,6 +170,19 @@ function Router() {
         )}
       </Route>
       
+      <Route path="/admin/companies">
+        {() => (
+          <ProtectedRoute
+            component={() => (
+              <AuthenticatedLayout isAdmin>
+                <AdminDashboard />
+              </AuthenticatedLayout>
+            )}
+            adminOnly
+          />
+        )}
+      </Route>
+      
       <Route path="/admin/logs">
         {() => (
           <ProtectedRoute
