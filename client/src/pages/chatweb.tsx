@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, Bot, User, Image as ImageIcon, Mic, X, ShoppingBag, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useCart } from "@/context/CartContext";
 
 interface Message {
   id: string;
@@ -27,15 +28,22 @@ interface Message {
   } | null;
 }
 
+const CONVERSATION_STORAGE_KEY = "omni_conversation_";
+
 export default function ChatWeb() {
   const { companyId } = useParams<{ companyId: string }>();
   const { toast } = useToast();
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const { items: cartItems, total: cartTotal, clearCart } = useCart();
+  const [conversationId, setConversationId] = useState<string | null>(() => {
+    if (!companyId) return null;
+    return localStorage.getItem(CONVERSATION_STORAGE_KEY + companyId);
+  });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -63,6 +71,9 @@ export default function ChatWeb() {
     },
     onSuccess: (data) => {
       setConversationId(data.id);
+      if (companyId) {
+        localStorage.setItem(CONVERSATION_STORAGE_KEY + companyId, data.id);
+      }
     },
   });
 
@@ -90,9 +101,39 @@ export default function ChatWeb() {
   });
 
   useEffect(() => {
-    if (companyId && !conversationId) {
-      createConversationMutation.mutate();
-    }
+    const loadConversation = async () => {
+      if (!companyId) return;
+      
+      if (conversationId) {
+        // Load existing conversation messages
+        setIsLoadingMessages(true);
+        try {
+          const response = await fetch(`/api/chatweb/${companyId}/conversations/${conversationId}/messages`);
+          if (response.ok) {
+            const existingMessages = await response.json();
+            setMessages(existingMessages);
+          } else {
+            // Conversation doesn't exist anymore, create new one
+            localStorage.removeItem(CONVERSATION_STORAGE_KEY + companyId);
+            setConversationId(null);
+            createConversationMutation.mutate();
+          }
+        } catch (error) {
+          console.error("Error loading messages:", error);
+          // Create new conversation on error
+          localStorage.removeItem(CONVERSATION_STORAGE_KEY + companyId);
+          setConversationId(null);
+          createConversationMutation.mutate();
+        } finally {
+          setIsLoadingMessages(false);
+        }
+      } else {
+        // No conversation exists, create new one
+        createConversationMutation.mutate();
+      }
+    };
+    
+    loadConversation();
   }, [companyId]);
 
   useEffect(() => {
@@ -170,12 +211,27 @@ export default function ChatWeb() {
     }
   };
 
-  if (!companyData) {
+  const handleSendCartToAgent = () => {
+    if (cartItems.length === 0 || !conversationId) return;
+    
+    const cartSummary = cartItems.map(item => 
+      `- ${item.name} (${item.quantity}x) - R$ ${(item.price * item.quantity / 100).toFixed(2)}`
+    ).join('\n');
+    
+    const cartMessage = `Olá! Gostaria de finalizar esta compra:\n\n${cartSummary}\n\nTotal: R$ ${(cartTotal / 100).toFixed(2)}`;
+    
+    setInput(cartMessage);
+    toast({ title: "Carrinho adicionado à conversa!" });
+  };
+
+  if (!companyData || isLoadingMessages) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted">
         <div className="text-center space-y-2">
           <div className="text-lg font-semibold">Carregando...</div>
-          <div className="text-sm text-muted-foreground">Conectando ao agente</div>
+          <div className="text-sm text-muted-foreground">
+            {isLoadingMessages ? "Carregando conversa..." : "Conectando ao agente"}
+          </div>
         </div>
       </div>
     );
@@ -204,14 +260,26 @@ export default function ChatWeb() {
               </p>
             </div>
           </div>
-          <Button 
-            variant="outline"
-            onClick={() => window.location.href = `/catalog/${companyId}`}
-            data-testid="button-view-catalog"
-          >
-            <ShoppingBag className="w-4 h-4 mr-2" />
-            Ver Catálogo
-          </Button>
+          <div className="flex items-center gap-2">
+            {cartItems.length > 0 && (
+              <Button 
+                variant="default"
+                onClick={handleSendCartToAgent}
+                data-testid="button-send-cart"
+              >
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                Enviar Carrinho ({cartItems.length})
+              </Button>
+            )}
+            <Button 
+              variant="outline"
+              onClick={() => window.location.href = `/catalog/${companyId}`}
+              data-testid="button-view-catalog"
+            >
+              <Store className="w-4 h-4 mr-2" />
+              Ver Catálogo
+            </Button>
+          </div>
         </div>
       </div>
 
