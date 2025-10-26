@@ -33,7 +33,7 @@ const CONVERSATION_STORAGE_KEY = "omni_conversation_";
 export default function ChatWeb() {
   const { companyId } = useParams<{ companyId: string }>();
   const { toast } = useToast();
-  const { items: cartItems, total: cartTotal, clearCart } = useCart();
+  const { items: cartItems, total: cartTotal, clearCart, addItem } = useCart();
   const [conversationId, setConversationId] = useState<string | null>(() => {
     if (!companyId) return null;
     return localStorage.getItem(CONVERSATION_STORAGE_KEY + companyId);
@@ -106,6 +106,25 @@ export default function ChatWeb() {
     },
     onSuccess: (assistantMessage) => {
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Check if agent added items to cart
+      if (assistantMessage.metadata && 'cartItems' in assistantMessage.metadata) {
+        const items = (assistantMessage.metadata as any).cartItems;
+        if (Array.isArray(items)) {
+          items.forEach((item: any) => {
+            addItem({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              imageUrl: item.imageUrl
+            }, item.quantity);
+          });
+          toast({ 
+            title: "Produtos adicionados ao carrinho!",
+            description: `${items.length} produto(s) adicionado(s)`
+          });
+        }
+      }
     },
     onError: (error) => {
       console.error("Mutation error:", error);

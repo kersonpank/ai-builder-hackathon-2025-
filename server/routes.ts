@@ -1123,6 +1123,13 @@ IMPORTANTE - Estilo de comunicação:
 - Seja natural e conversacional
 - Seja amigável e prestativo
 
+GERENCIAMENTO DE CARRINHO:
+Você tem acesso à função 'add_to_cart' para adicionar produtos ao carrinho do cliente.
+- Use quando o cliente demonstrar interesse em um produto
+- Use quando o cliente disser "quero", "me adiciona", "coloca no carrinho"
+- Confirme sempre após adicionar: "Adicionei ao seu carrinho!"
+- O carrinho é compartilhado entre o chat e o catálogo do site
+
 Quando quiser mostrar um produto específico com imagem:
 - Mencione o produto usando o formato: [NOME EXATO DO PRODUTO]
 - Exemplo: "Te recomendo o [Smartphone XYZ]" ou "Que tal este [Notebook ABC]?"
@@ -1204,6 +1211,31 @@ Seu objetivo é:
 
       // Define tools (functions) that the agent can use
       const tools = [
+        {
+          type: "function" as const,
+          function: {
+            name: "add_to_cart",
+            description: "Adiciona produtos ao carrinho quando o cliente demonstrar interesse. Use quando o cliente mencionar que quer um produto, está interessado, ou pedir para adicionar ao carrinho.",
+            parameters: {
+              type: "object",
+              properties: {
+                items: {
+                  type: "array",
+                  description: "Produtos para adicionar ao carrinho",
+                  items: {
+                    type: "object",
+                    properties: {
+                      productId: { type: "string", description: "ID do produto" },
+                      quantity: { type: "number", description: "Quantidade desejada", default: 1 }
+                    },
+                    required: ["productId", "quantity"]
+                  }
+                }
+              },
+              required: ["items"]
+            }
+          }
+        },
         {
           type: "function" as const,
           function: {
@@ -1301,7 +1333,71 @@ Seu objetivo é:
       if (completion.choices[0].message.tool_calls && completion.choices[0].message.tool_calls.length > 0) {
         const toolCall = completion.choices[0].message.tool_calls[0];
         
-        if (toolCall.type === "function" && toolCall.function.name === "create_order") {
+        if (toolCall.type === "function" && toolCall.function.name === "add_to_cart") {
+          try {
+            const functionArgs = JSON.parse(toolCall.function.arguments);
+            
+            // Build cart items with real product data
+            const cartItems = [];
+            for (const item of functionArgs.items) {
+              const product = activeProducts.find(p => p.id === item.productId);
+              if (product) {
+                cartItems.push({
+                  id: product.id,
+                  name: product.name,
+                  price: product.price,
+                  quantity: item.quantity,
+                  imageUrl: product.imageUrls?.[0] || undefined
+                });
+              }
+            }
+            
+            if (cartItems.length > 0) {
+              // Send function result back to the model
+              const functionResultMessages = [
+                ...openaiMessages,
+                completion.choices[0].message,
+                {
+                  role: "tool" as const,
+                  tool_call_id: toolCall.id,
+                  content: JSON.stringify({
+                    success: true,
+                    itemsAdded: cartItems.length,
+                    cart: cartItems,
+                    message: `${cartItems.length} produto(s) adicionado(s) ao carrinho`
+                  })
+                }
+              ];
+              
+              // Get final response from the model
+              const secondCompletion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: functionResultMessages,
+                max_tokens: 500,
+                temperature: 0.8,
+              });
+              
+              assistantMessage = secondCompletion.choices[0].message.content || 
+                `Adicionei ${cartItems.length} produto(s) ao seu carrinho!`;
+              
+              // Save the assistant's response with cart metadata
+              const savedMessage = await storage.createMessage({
+                conversationId,
+                role: 'assistant',
+                content: assistantMessage,
+                metadata: {
+                  cartItems: cartItems,
+                  functionCalled: 'add_to_cart'
+                },
+              });
+              
+              return res.json(savedMessage);
+            }
+          } catch (error) {
+            console.error('Error adding to cart via function call:', error);
+            assistantMessage = "Desculpe, não consegui adicionar ao carrinho. Por favor, tente novamente.";
+          }
+        } else if (toolCall.type === "function" && toolCall.function.name === "create_order") {
           try {
             const functionArgs = JSON.parse(toolCall.function.arguments);
             
