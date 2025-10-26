@@ -64,6 +64,101 @@ const chatWebUpload = multer({
   }
 });
 
+// Specialist Agent Prompts
+const SPECIALIST_PROMPTS = {
+  seller: `PERFIL: Vendedor Focado em Conversão
+- Seu objetivo é FECHAR A VENDA de forma natural e consultiva
+- Identifique rapidamente o que o cliente quer e conduza para a compra
+- Use gatilhos mentais sutis (escassez, prova social, urgência)
+- Seja direto e objetivo nas recomendações
+- Antecipe objeções e trate-as proativamente`,
+
+  consultant: `PERFIL: Consultor Educador
+- Seu objetivo é EDUCAR e construir confiança antes de vender
+- O cliente está pesquisando, então forneça informações detalhadas
+- Compare opções, explique benefícios e diferenciais
+- Não pressione, deixe o cliente amadurecer a decisão
+- Faça perguntas para entender melhor as necessidades
+- Só sugira compra quando sentir que o cliente está pronto`,
+
+  support: `PERFIL: Suporte Pós-Venda
+- Seu objetivo é RESOLVER PROBLEMAS e manter o cliente satisfeito
+- Seja empático e demonstre que você se importa
+- Foque em solucionar o problema, não em vender mais
+- Peça desculpas se necessário e assuma responsabilidade
+- Ofereça soluções claras e prazos realistas
+- Só mencione novos produtos se for genuinamente útil para o problema`,
+
+  technical: `PERFIL: Especialista Técnico
+- Seu objetivo é esclarecer DÚVIDAS TÉCNICAS complexas
+- Use linguagem clara mas precisa
+- Forneça detalhes técnicos quando necessário
+- Confirme entendimento perguntando "ficou claro?"
+- Se não souber, seja honesto e ofereça transferir para humano
+- Mantenha foco técnico, evite tangenciar para vendas`
+};
+
+// Conversation Intelligence Analyzer
+async function analyzeConversation(messages: any[]): Promise<{
+  intent: string;
+  sentiment: number;
+  complexity: number;
+  suggestedAgent: string;
+}> {
+  try {
+    // Use last 6 messages for analysis
+    const recentMessages = messages.slice(-6).map(m => `${m.role}: ${m.content}`).join('\n');
+    
+    const analysisPrompt = `Analise esta conversa e retorne um JSON com os seguintes campos:
+
+Conversa:
+${recentMessages}
+
+Retorne APENAS um JSON válido (sem markdown, sem explicações) no formato:
+{
+  "intent": "browsing|purchase_intent|support|complaint|technical_question",
+  "sentiment": <número de -100 a +100>,
+  "complexity": <número de 0 a 100>,
+  "suggestedAgent": "seller|consultant|support|technical"
+}
+
+Critérios:
+- intent: intenção principal do cliente neste momento
+- sentiment: -100 (muito negativo/frustrado) a +100 (muito positivo/satisfeito)
+- complexity: 0 (simples) a 100 (muito complexo/confuso)
+- suggestedAgent: 
+  * seller = cliente quer comprar, está decidido
+  * consultant = cliente está pesquisando, precisa ser educado
+  * support = cliente tem problema/dúvida pós-venda
+  * technical = questão técnica complexa`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: analysisPrompt }],
+      temperature: 0.3,
+      max_tokens: 200,
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content || '{}');
+    
+    return {
+      intent: result.intent || 'browsing',
+      sentiment: result.sentiment || 0,
+      complexity: result.complexity || 30,
+      suggestedAgent: result.suggestedAgent || 'seller',
+    };
+  } catch (error) {
+    console.error('Error analyzing conversation:', error);
+    // Return defaults on error
+    return {
+      intent: 'browsing',
+      sentiment: 0,
+      complexity: 30,
+      suggestedAgent: 'seller',
+    };
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   
   // ============ PUBLIC FILE SERVING ============
@@ -1160,6 +1255,26 @@ ${extractedText.substring(0, 15000)}`;
       // Only use published AND active products for AI context
       const activeProducts = products.filter(p => p.isActive && p.status === 'published');
 
+      // 🧠 CONVERSATION INTELLIGENCE: Analyze conversation to select best specialist agent
+      const allMessages = await storage.getMessagesByConversation(conversationId);
+      const analysis = await analyzeConversation(allMessages);
+      
+      // Update conversation with analysis results
+      await storage.updateConversation(conversationId, {
+        currentIntent: analysis.intent,
+        sentimentScore: analysis.sentiment,
+        complexityScore: analysis.complexity,
+        activeAgentType: analysis.suggestedAgent,
+        analysisUpdatedAt: new Date(),
+      });
+
+      console.log('🧠 Conversation Analysis:', {
+        intent: analysis.intent,
+        sentiment: analysis.sentiment,
+        complexity: analysis.complexity,
+        selectedAgent: analysis.suggestedAgent,
+      });
+
       // Build system prompt
       const toneInstructions = {
         'Empático': 'Seja caloroso, acolhedor e demonstre empatia genuína. Use linguagem amigável e próxima.',
@@ -1196,11 +1311,21 @@ ${agent?.productFocusStrategy ? `- Foco estratégico: ${agent.productFocusStrate
         ? `Estilo de resposta: ${agent.responseStyle}` 
         : 'Use textos curtos e humanizados (máximo 2-3 frases por vez)';
 
+      // Select specialist prompt based on analysis
+      const specialistPrompt = SPECIALIST_PROMPTS[analysis.suggestedAgent as keyof typeof SPECIALIST_PROMPTS] || SPECIALIST_PROMPTS.seller;
+
       const systemPrompt = `Você é ${agent?.name || 'um assistente virtual'} da ${company?.name}.
 
 Tom de voz: ${toneInstructions[agent?.toneOfVoice as keyof typeof toneInstructions] || toneInstructions['Profissional']}
 
-${personalityInstructions[agent?.sellerPersonality as keyof typeof personalityInstructions] || personalityInstructions['balanced']}
+${specialistPrompt}
+
+CONTEXTO DA CONVERSA (Análise Inteligente):
+- Intenção detectada: ${analysis.intent}
+- Sentimento do cliente: ${analysis.sentiment > 30 ? 'Positivo' : analysis.sentiment < -30 ? 'Negativo' : 'Neutro'} (${analysis.sentiment}/100)
+- Complexidade: ${analysis.complexity > 60 ? 'Alta' : analysis.complexity > 30 ? 'Média' : 'Baixa'} (${analysis.complexity}/100)
+${analysis.complexity > 70 ? '⚠️ ATENÇÃO: Conversa complexa - considere transferir para humano se necessário' : ''}
+${analysis.sentiment < -40 ? '⚠️ ATENÇÃO: Cliente frustrado - seja extra cuidadoso e empático' : ''}
 
 ${agent?.customInstructions ? `Instruções adicionais: ${agent.customInstructions}` : ''}
 
