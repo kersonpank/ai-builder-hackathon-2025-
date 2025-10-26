@@ -524,12 +524,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let extractedText = "";
+      let extractedImages: Buffer[] = [];
 
-      // Extract text based on file type
+      // Extract text and images based on file type
       if (req.file.mimetype === 'application/pdf') {
-        const pdfParse = require('pdf-parse');
+        // Dynamic import for ESM compatibility
+        const pdfParse = await import('pdf-parse');
         const pdfData = await pdfParse(req.file.buffer);
         extractedText = pdfData.text;
+
+        console.log('PDF parsed successfully. Text length:', extractedText.length);
+
+        // Convert PDF pages to images for GPT-4 Vision analysis
+        try {
+          const pdfToImg = await import('pdf-img-convert');
+          const pdfImages = await pdfToImg.convert(req.file.buffer, {
+            width: 2000,
+            height: 2000,
+            page_numbers: [1, 2, 3, 4, 5], // First 5 pages max for cost efficiency
+            base64: true
+          }) as string[];
+
+          console.log(`Extracted ${pdfImages.length} images from PDF`);
+          
+          // Store images as base64 strings for later processing
+          extractedImages = pdfImages.map(img => Buffer.from(img, 'base64'));
+        } catch (imgError) {
+          console.error('Error extracting images from PDF:', imgError);
+          // Continue even if image extraction fails
+        }
       } else if (req.file.mimetype === 'application/xml' || req.file.mimetype === 'text/xml' || req.file.originalname.endsWith('.xml')) {
         const xmlText = req.file.buffer.toString('utf-8');
         extractedText = xmlText;
@@ -543,8 +566,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Não foi possível extrair texto do arquivo" });
       }
 
-      // Use OpenAI to extract structured product data
-      const prompt = `Você é um assistente especializado em extrair informações de produtos de documentos.
+      let parsedData: any = { products: [] };
+
+      // If we have images from PDF, use GPT-4 Vision for better extraction
+      if (extractedImages.length > 0) {
+        console.log('Processing PDF with GPT-4 Vision...');
+        
+        // Process each page image with Vision API
+        for (let i = 0; i < extractedImages.length; i++) {
+          try {
+            const base64Image = extractedImages[i].toString('base64');
+            
+            const visionCompletion = await openai.chat.completions.create({
+              model: "gpt-4o",
+              messages: [{
+                role: "user",
+                content: [
+                  {
+                    type: "text",
+                    text: `Você é um assistente especializado em extrair informações de catálogos de produtos.
+
+Analise esta página de catálogo e extraia TODOS os produtos visíveis, retornando um JSON com a seguinte estrutura:
+{
+  "products": [
+    {
+      "name": "Nome do produto",
+      "description": "Descrição breve do produto (se visível)",
+      "price": preço_em_centavos (número inteiro, ex: 9990 para R$99,90, ou 0 se não visível),
+      "category": "Categoria do produto (inferir se necessário)",
+      "stock": 0,
+      "hasImage": true/false (se há uma imagem do produto nesta página)
+    }
+  ]
+}
+
+REGRAS IMPORTANTES:
+- Extraia TODOS os produtos visíveis na página
+- O campo "price" DEVE ser um número inteiro em centavos
+- Se o preço estiver como "7.00", "12.50", etc., converta para centavos (700, 1250)
+- Se houver uma imagem do produto, marque hasImage como true
+- Use "Geral" como categoria se não conseguir identificar
+- Retorne APENAS o JSON, sem explicações`
+                  },
+                  {
+                    type: "image_url",
+                    image_url: {
+                      url: `data:image/png;base64,${base64Image}`,
+                      detail: "high"
+                    }
+                  }
+                ]
+              }],
+              response_format: { type: "json_object" },
+              max_tokens: 4000,
+              temperature: 0.2,
+            });
+
+            const pageData = JSON.parse(visionCompletion.choices[0].message.content || "{}");
+            if (pageData.products && Array.isArray(pageData.products)) {
+              // Mark which page each product came from for image extraction later
+              pageData.products.forEach((p: any) => {
+                p.pageNumber = i + 1;
+              });
+              parsedData.products.push(...pageData.products);
+            }
+            
+            console.log(`Extracted ${pageData.products?.length || 0} products from page ${i + 1}`);
+          } catch (visionError) {
+            console.error(`Error processing page ${i + 1} with Vision:`, visionError);
+          }
+        }
+      } else {
+        // Fallback to text-only extraction
+        console.log('Processing with text-only extraction...');
+        
+        const prompt = `Você é um assistente especializado em extrair informações de produtos de documentos.
 
 Analise o seguinte texto e extraia TODOS os produtos mencionados, retornando um JSON com a seguinte estrutura:
 {
@@ -554,7 +650,7 @@ Analise o seguinte texto e extraia TODOS os produtos mencionados, retornando um 
       "description": "Descrição breve do produto",
       "price": preço_em_centavos (número inteiro, ex: 9990 para R$99,90),
       "category": "Categoria do produto",
-      "stock": quantidade_em_estoque (número, use 0 se não informado)
+      "stock": 0
     }
   ]
 }
@@ -563,26 +659,54 @@ REGRAS IMPORTANTES:
 - O campo "price" DEVE ser um número inteiro em centavos (multiplique o valor em reais por 100)
 - Se o preço estiver em formato "R$ 99,90", converta para 9990
 - Se não houver categoria, use "Geral"
-- Se não houver estoque informado, use 0
-- Se não houver descrição, deixe vazio
 - Retorne APENAS o JSON, sem explicações adicionais
 
 Texto do documento:
 ${extractedText.substring(0, 15000)}`;
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-        max_tokens: 4000,
-        temperature: 0.3,
-      });
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          max_tokens: 4000,
+          temperature: 0.3,
+        });
 
-      const responseContent = completion.choices[0].message.content || "{}";
-      const parsedData = JSON.parse(responseContent);
+        const responseContent = completion.choices[0].message.content || "{}";
+        parsedData = JSON.parse(responseContent);
+      }
 
-      if (!parsedData.products || !Array.isArray(parsedData.products)) {
+      if (!parsedData.products || !Array.isArray(parsedData.products) || parsedData.products.length === 0) {
         return res.status(400).json({ error: "Nenhum produto foi encontrado no arquivo" });
+      }
+
+      console.log(`Total products extracted: ${parsedData.products.length}`);
+
+      // For products with images, save the page as product image
+      const objectStorage = new ObjectStorageService();
+      
+      for (const product of parsedData.products) {
+        if (product.hasImage && product.pageNumber && extractedImages[product.pageNumber - 1]) {
+          try {
+            const pageImage = extractedImages[product.pageNumber - 1];
+            
+            // Upload page image to object storage as product image
+            const timestamp = Date.now();
+            const filename = `product-${req.user!.companyId}-${timestamp}-page${product.pageNumber}.png`;
+            const imagePath = `.private/${filename}`;
+            
+            await objectStorage.uploadFile(imagePath, pageImage, 'image/png');
+            const imageUrl = await objectStorage.getSignedUrl(imagePath);
+            
+            product.imageUrls = [imageUrl];
+            console.log(`Uploaded image for product: ${product.name}`);
+          } catch (uploadError) {
+            console.error('Error uploading product image:', uploadError);
+            product.imageUrls = [];
+          }
+        } else {
+          product.imageUrls = [];
+        }
       }
 
       // Create products in draft status
@@ -593,10 +717,10 @@ ${extractedText.substring(0, 15000)}`;
         price: typeof p.price === 'number' ? p.price : 0,
         category: p.category || "Geral",
         stock: typeof p.stock === 'number' ? p.stock : 0,
-        imageUrls: [],
+        imageUrls: p.imageUrls || [],
         status: "draft",
         source: "bulk_import",
-        isActive: false, // Don't activate until reviewed
+        isActive: false,
       }));
 
       const createdProducts = await storage.createProductsBulk(productsToCreate);
