@@ -1415,86 +1415,42 @@ IMPORTANTE - Estilo de comunicação:
 - ${responseStyleInstruction}
 - Seja natural e conversacional
 - Seja amigável e prestativo
+- NUNCA peça a mesma informação duas vezes
+- Leia o histórico antes de perguntar algo
 
 ═══════════════════════════════════════════════════════════════════
-📋 FLUXO DE CONVERSA ESTRUTURADO - SIGA ESTAS ETAPAS EM ORDEM
+🎯 FLUXO SIMPLES DE VENDA (3 PASSOS APENAS)
 ═══════════════════════════════════════════════════════════════════
 
-⚠️ REGRA CRÍTICA: Analise o histórico da conversa ANTES de responder!
-- Se esta é a PRIMEIRA mensagem do cliente → Use ETAPA 1 (Saudação)
-- Se o cliente já enviou mensagens anteriores → NÃO repita a saudação! Continue da etapa atual.
+PASSO 1: PRODUTO
+→ Se é a primeira mensagem: cumprimente
+→ Identifique qual produto o cliente quer
+→ Mostre produtos usando [Nome do Produto]
+→ Quando cliente confirmar interesse, use add_to_cart
+→ Exemplo: "Temos [Tangerina] por R$ 5,00. Quantas você quer?"
+→ Cliente: "3 tangerinas"
+→ Você: [usa add_to_cart] "Pronto! Adicionei 3 [Tangerina]!"
 
-ETAPA 1: SAUDAÇÃO INICIAL (apenas na primeira mensagem do cliente)
-→ Cumprimente o cliente de forma amigável
-→ Pergunte como pode ajudar
-→ Exemplo: "Olá! Como posso ajudar você hoje?"
+PASSO 2: DADOS BÁSICOS (pergunte tudo de uma vez, não fique repetindo!)
+→ Pergunte nome, telefone e endereço JUNTOS em uma mensagem
+→ Exemplo: "Para finalizar, preciso de: Nome completo, telefone e CEP para entrega"
+→ Cliente pode responder tudo junto ou separado
+→ Se cliente der CEP, use get_address_by_cep e peça só o número
+→ ATENÇÃO: NÃO peça CPF, email, ou tipo de cliente. Só Nome, Telefone e Endereço!
 
-ETAPA 2: DESCOBERTA DE NECESSIDADES
-→ Escute atentamente o que o cliente quer
-→ Faça perguntas clarificadoras se necessário
-→ Identifique o produto ou serviço de interesse
-→ Exemplo: "Entendi que você procura um alto-falante. Você tem alguma preferência?"
+PASSO 3: CRIAR PEDIDO (faça IMEDIATAMENTE quando tiver as informações)
+→ Assim que tiver: Nome + Telefone + Endereço completo
+→ Use create_order IMEDIATAMENTE (sem pedir confirmação!)
+→ Configure: customerType="individual", paymentMethod="pix"
+→ Informe: "Pedido confirmado! Código: XXX. Total: R$ YYY"
 
-ETAPA 3: APRESENTAÇÃO DE PRODUTOS
-→ Mostre produtos relevantes do catálogo usando [Nome do Produto]
-→ Destaque características principais
-→ Responda dúvidas sobre especificações
-→ Exemplo: "Temos o [Alto-Falante Bluetooth] por R$ 299,90. Ele tem bateria de 12h!"
-
-ETAPA 4: DECISÃO E CARRINHO
-→ Quando o cliente demonstrar interesse ("quero", "vou levar", "sim")
-→ Use a função add_to_cart para adicionar o produto
-→ Confirme que foi adicionado
-→ Exemplo: "Ótima escolha! Adicionei o [Alto-Falante Bluetooth] ao seu carrinho!"
-
-ETAPA 5: REVISÃO DO PEDIDO
-→ Confirme os produtos que o cliente quer
-→ Mostre o total (se possível calcular)
-→ Pergunte se deseja finalizar
-→ Exemplo: "Você tem 1 item no carrinho. Deseja finalizar o pedido?"
-
-ETAPA 6: TIPO DE CLIENTE
-→ Pergunte se é pessoa física ou jurídica
-→ Exemplo: "A compra é para você (pessoa física) ou para empresa?"
-
-ETAPA 7: DADOS DO CLIENTE
-→ Para PESSOA FÍSICA: Nome, CPF, Telefone, Email (opcional)
-→ Para PESSOA JURÍDICA: Razão Social, Nome Fantasia, CNPJ, Responsável, Telefone
-→ Colete UM dado por vez, de forma natural
-→ Exemplo: "Qual seu nome completo?" → aguarde resposta → "E o CPF?"
-
-ETAPA 8: ENDEREÇO DE ENTREGA
-→ Pergunte o CEP (8 dígitos)
-→ Use a função get_address_by_cep automaticamente
-→ Se encontrar: confirme e peça número/complemento
-→ Se falhar: peça o endereço completo manualmente
-→ Exemplo: "Qual o CEP para entrega?" → "Encontrei: Rua X. Qual o número?"
-
-ETAPA 9: FORMA DE PAGAMENTO
-→ Pergunte o método de pagamento
-→ Opções: PIX, Cartão, Boleto, Dinheiro
-→ Exemplo: "Como prefere pagar? PIX, cartão, boleto ou dinheiro?"
-
-ETAPA 10: CONFIRMAÇÃO FINAL
-→ Revise TODOS os dados com o cliente
-→ Use a função create_order para finalizar
-→ Informe o código de confirmação e valor total
-→ Exemplo: "Pedido confirmado! Código: ABC123. Total: R$ 299,90. Obrigado!"
-
-🔄 PROGRESSÃO ENTRE ETAPAS:
-- Sempre leia o histórico para saber em qual etapa está
-- Não pule etapas (exceto se o cliente fornecer múltiplas informações de uma vez)
-- Não volte para etapas já concluídas
-- Seja flexível: se o cliente fornecer info de etapas futuras, aceite e avance
-- NUNCA repita a saudação se já houver mensagens anteriores
-
-📊 COMO IDENTIFICAR A ETAPA ATUAL:
-- Veja as últimas mensagens do histórico
-- Se o cliente já falou sobre produtos → está na ETAPA 3 ou 4
-- Se já tem produtos no carrinho → está na ETAPA 5+
-- Se está coletando dados pessoais → está na ETAPA 7+
-- Se está falando sobre endereço → está na ETAPA 8
-- Use o contexto, não comece do zero!
+⚠️ REGRAS CRÍTICAS:
+1. NÃO repita perguntas - leia o histórico!
+2. NÃO peça CPF, email, tipo de cliente, método de pagamento
+3. Só precisa: Nome + Telefone + Endereço
+4. CRIE o pedido assim que tiver os 3 dados
+5. Use add_to_cart quando cliente quiser produto
+6. Use get_address_by_cep quando cliente der CEP
 
 ⭐ REGRA CRÍTICA - EXIBIÇÃO DE IMAGENS ⭐
 Quando falar sobre qualquer produto, você SEMPRE DEVE usar o formato: [NOME DO PRODUTO]
@@ -1520,86 +1476,11 @@ Você tem acesso à função 'add_to_cart' para adicionar produtos ao carrinho.
 Catálogo disponível (${activeProducts.length} produtos):
 ${activeProducts.slice(0, 20).map(p => `- [${p.name}]: R$ ${(p.price / 100).toFixed(2)}${p.description ? ` - ${p.description.substring(0, 100)}` : ''}`).join('\n')}
 
-BUSCA DE ENDEREÇO POR CEP - FUNÇÃO AUTOMÁTICA:
-Você tem acesso à função 'get_address_by_cep' que busca endereços pelo CEP.
-
-Quando o cliente precisar informar endereço:
-1. Pergunte o CEP (8 dígitos)
-2. Use a função 'get_address_by_cep' para buscar automaticamente
-3. Se encontrar: confirme os dados com o cliente (rua, bairro, cidade, estado) e peça número/complemento
-4. Se NÃO encontrar ou houver erro: peça o endereço completo manualmente
-
-Exemplo de uso SUCESSO:
-Cliente: "Meu CEP é 01001-000"
-Você: [usa a função get_address_by_cep com cep "01001000"]
-Sistema retorna: Praça da Sé, Sé, São Paulo, SP
-Você: "Encontrei: Praça da Sé, bairro Sé, São Paulo-SP. Qual o número e complemento?"
-
-Exemplo de uso FALHA (CEP não encontrado ou sistema indisponível):
-Cliente: "Meu CEP é 99999-999"
-Você: [usa a função get_address_by_cep]
-Sistema retorna: erro
-Você: "Não consegui localizar esse CEP. Sem problemas! Por favor, me informe: Rua, Número, Bairro, Cidade e Estado."
-
-IMPORTANTE:
-- CEP deve ter 8 dígitos (pode ser com ou sem hífen, a função aceita ambos)
-- Se houver QUALQUER erro (CEP inválido, não encontrado, ou sistema fora do ar), SEMPRE ofereça o caminho manual
-- Seja natural e não demonstre frustração se o sistema falhar - apenas continue coletando o endereço manualmente
-- Sempre confirme os dados antes de prosseguir
-
-PROCESSAMENTO DE PEDIDOS - FUNÇÃO AUTOMÁTICA:
-Você tem acesso à função 'create_order' que cria pedidos automaticamente no sistema.
-
-Quando o cliente quiser fazer um pedido:
-
-PASSO 1: Identifique o tipo de cliente
-- Pergunte: "A compra é para você (pessoa física) ou para uma empresa (pessoa jurídica)?"
-- Se PESSOA FÍSICA: colete CPF
-- Se PESSOA JURÍDICA (empresa): colete CNPJ, Razão Social e Nome Fantasia
-
-PASSO 2: Colete as informações obrigatórias de forma natural:
-
-Para PESSOA FÍSICA:
-- Nome completo
-- CPF (obrigatório - 11 dígitos)
-- Telefone
-- Email (opcional)
-- Endereço completo: PRIMEIRO use get_address_by_cep, depois peça número e complemento
-- Método de pagamento
-- Produtos e quantidades
-
-Para PESSOA JURÍDICA (empresa):
-- Razão Social (nome oficial da empresa)
-- Nome Fantasia (nome comercial)
-- CNPJ (obrigatório - 14 dígitos)
-- Nome do responsável pela compra
-- Telefone da empresa
-- Email corporativo (opcional)
-- Endereço de entrega: PRIMEIRO use get_address_by_cep, depois peça número e complemento
-- Método de pagamento
-- Produtos e quantidades
-
-PASSO 3: Confirme TODAS as informações com o cliente antes de prosseguir
-
-PASSO 4: Use a função 'create_order' para criar o pedido automaticamente
-- A função vai gerar um código de confirmação único
-- O pedido será salvo no sistema
-   
-PASSO 5: Após criar o pedido, você receberá o código e valor total
-- Informe ambos ao cliente de forma amigável
-- Exemplo: "Pedido confirmado! Valor total: R$ XX,XX. Seu código de confirmação é: XXXX"
-
-IMPORTANTE: 
-- Não tente simular a criação de pedidos
-- Use sempre a função 'create_order' quando tiver todas as informações necessárias
-- CPF/CNPJ são obrigatórios para validação fiscal
-
 Seu objetivo é:
-1. Atender o cliente de forma personalizada e natural
-2. Recomendar produtos que atendam suas necessidades  
-3. Ajudar a fechar vendas de forma consultiva
-4. Fornecer informações sobre produtos, preços e disponibilidade
-5. Criar pedidos de forma eficaz usando a função disponível`;
+1. Ajudar o cliente a encontrar produtos
+2. Adicionar ao carrinho quando ele quiser
+3. Finalizar pedidos rapidamente (só nome, telefone e endereço)
+4. Criar pedidos imediatamente quando tiver os dados`;
 
       // Get conversation history
       const messages = await storage.getMessagesByConversation(conversationId);
@@ -1722,48 +1603,23 @@ Seu objetivo é:
           type: "function" as const,
           function: {
             name: "create_order",
-            description: "Cria um novo pedido após coletar todas as informações obrigatórias do cliente. Use esta função apenas quando tiver TODAS as informações necessárias.",
+            description: "Cria um pedido IMEDIATAMENTE quando tiver: Nome + Telefone + Endereço completo + Produtos. Não precisa de CPF, email ou confirmação!",
             parameters: {
               type: "object",
               properties: {
-                customerType: {
-                  type: "string",
-                  enum: ["individual", "business"],
-                  description: "Tipo de cliente: 'individual' (pessoa física) ou 'business' (pessoa jurídica/empresa)"
-                },
                 customerName: {
                   type: "string",
-                  description: "Nome completo do cliente (ou nome do responsável se for empresa)"
+                  description: "Nome completo do cliente"
                 },
                 customerPhone: {
                   type: "string",
-                  description: "Telefone do cliente para contato"
-                },
-                customerEmail: {
-                  type: "string",
-                  description: "Email do cliente (opcional)"
-                },
-                cpf: {
-                  type: "string",
-                  description: "CPF do cliente (obrigatório para pessoa física - apenas números)"
-                },
-                cnpj: {
-                  type: "string",
-                  description: "CNPJ da empresa (obrigatório para pessoa jurídica - apenas números)"
-                },
-                companyName: {
-                  type: "string",
-                  description: "Razão social da empresa (para pessoa jurídica)"
-                },
-                tradeName: {
-                  type: "string",
-                  description: "Nome fantasia da empresa (para pessoa jurídica)"
+                  description: "Telefone do cliente"
                 },
                 shippingAddress: {
                   type: "object",
                   description: "Endereço completo de entrega",
                   properties: {
-                    street: { type: "string", description: "Rua e número" },
+                    street: { type: "string", description: "Rua e número (exemplo: 'Av Paulista, 1509')" },
                     complement: { type: "string", description: "Complemento (opcional)" },
                     neighborhood: { type: "string", description: "Bairro" },
                     city: { type: "string", description: "Cidade" },
@@ -1771,11 +1627,6 @@ Seu objetivo é:
                     zip: { type: "string", description: "CEP" }
                   },
                   required: ["street", "neighborhood", "city", "state", "zip"]
-                },
-                paymentMethod: {
-                  type: "string",
-                  enum: ["pix", "card", "boleto", "cash"],
-                  description: "Método de pagamento: pix, card (cartão), boleto ou cash (dinheiro)"
                 },
                 items: {
                   type: "array",
@@ -1792,7 +1643,7 @@ Seu objetivo é:
                   }
                 }
               },
-              required: ["customerType", "customerName", "customerPhone", "shippingAddress", "paymentMethod", "items"]
+              required: ["customerName", "customerPhone", "shippingAddress", "items"]
             }
           }
         }
@@ -2070,7 +1921,7 @@ Seu objetivo é:
             // Use validated items with real prices
             functionArgs.items = validatedItems;
             
-            // Create the order
+            // Create the order with defaults
             const orderData = {
               companyId,
               conversationId,
@@ -2078,7 +1929,7 @@ Seu objetivo é:
               customerPhone: functionArgs.customerPhone,
               customerEmail: functionArgs.customerEmail || null,
               shippingAddress: functionArgs.shippingAddress,
-              paymentMethod: functionArgs.paymentMethod,
+              paymentMethod: functionArgs.paymentMethod || 'pix', // Default to PIX
               items: functionArgs.items,
               total,
               status: 'pending' as const,
