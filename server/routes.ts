@@ -967,6 +967,24 @@ ${extractedText.substring(0, 15000)}`;
     }
   });
 
+  // Get conversation messages (public)
+  app.get("/api/chatweb/:companyId/conversations/:conversationId/messages", async (req, res) => {
+    try {
+      const { companyId, conversationId } = req.params;
+      
+      // Verify conversation belongs to this company (security check)
+      const conversation = await storage.getConversation(conversationId);
+      if (!conversation || conversation.companyId !== companyId) {
+        return res.status(403).json({ error: "Conversa não pertence a esta empresa" });
+      }
+      
+      const messages = await storage.getMessagesByConversation(conversationId);
+      res.json(messages);
+    } catch (error) {
+      res.status(400).json({ error: "Erro ao buscar mensagens" });
+    }
+  });
+
   // Send message and get AI response (public) with image and audio support
   app.post("/api/chatweb/:companyId/conversations/:conversationId/messages", 
     chatWebUpload.fields([{ name: 'image', maxCount: 1 }, { name: 'audio', maxCount: 1 }]),
