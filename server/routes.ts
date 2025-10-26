@@ -528,8 +528,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Extract text and images based on file type
       if (req.file.mimetype === 'application/pdf') {
-        // Dynamic import for ESM compatibility
-        const pdfParse = await import('pdf-parse');
+        // Dynamic import for ESM compatibility  
+        const pdfParseModule = await import('pdf-parse');
+        // pdf-parse might export as default or as the module itself
+        const pdfParse = (pdfParseModule as any).default || pdfParseModule;
         const pdfData = await pdfParse(req.file.buffer);
         extractedText = pdfData.text;
 
@@ -692,11 +694,9 @@ ${extractedText.substring(0, 15000)}`;
             
             // Upload page image to object storage as product image
             const timestamp = Date.now();
-            const filename = `product-${req.user!.companyId}-${timestamp}-page${product.pageNumber}.png`;
-            const imagePath = `.private/${filename}`;
+            const filename = `bulk-import/${req.user!.companyId!}/${timestamp}-page${product.pageNumber}.png`;
             
-            await objectStorage.uploadFile(imagePath, pageImage, 'image/png');
-            const imageUrl = await objectStorage.getSignedUrl(imagePath);
+            const imageUrl = await objectStorage.uploadToPublicStorage(pageImage, filename, 'image/png');
             
             product.imageUrls = [imageUrl];
             console.log(`Uploaded image for product: ${product.name}`);
