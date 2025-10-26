@@ -1,14 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Package, ShoppingCart, MessageSquare, TrendingUp, Plus, Upload, ShoppingBag, ExternalLink, Copy, Check } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Package, ShoppingCart, MessageSquare, TrendingUp, Plus, Upload, ShoppingBag, ExternalLink, Copy, Check, Key, Webhook } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [copiedChatLink, setCopiedChatLink] = useState(false);
   const [copiedCatalogLink, setCopiedCatalogLink] = useState(false);
+  const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(false);
 
   const { data: stats, isLoading } = useQuery<{
     totalProducts: number;
@@ -21,6 +29,25 @@ export default function Dashboard() {
 
   const { data: company } = useQuery<any>({
     queryKey: ["/api/company"],
+  });
+
+  const generateTokenMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/company/webhook-token/generate", {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/company"] });
+      toast({ title: "Token gerado com sucesso!" });
+    },
+  });
+
+  const toggleAuthMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      return apiRequest("PATCH", "/api/company/webhook-auth", { enabled });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/company"] });
+    },
   });
 
   const quickActions = [
@@ -160,6 +187,108 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Webhook Configuration */}
+      {company && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Webhook className="w-5 h-5" />
+              Conecte via Webhook
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>URL do Webhook</Label>
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={`${window.location.origin}/api/chatweb/${company.id}/conversations`}
+                  className="font-mono text-sm"
+                  data-testid="text-webhook-url"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/api/chatweb/${company.id}/conversations`);
+                    setCopiedWebhookUrl(true);
+                    setTimeout(() => setCopiedWebhookUrl(false), 2000);
+                  }}
+                  data-testid="button-copy-webhook-url"
+                >
+                  {copiedWebhookUrl ? (
+                    <><Check className="w-4 h-4 mr-2" /> Copiado</>
+                  ) : (
+                    <><Copy className="w-4 h-4 mr-2" /> Copiar</>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="webhook-auth"
+                checked={company.webhookAuthEnabled || false}
+                onCheckedChange={(checked) => toggleAuthMutation.mutate(!!checked)}
+                data-testid="checkbox-webhook-auth"
+              />
+              <Label
+                htmlFor="webhook-auth"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Habilitar autenticação por Bearer Token (segurança adicional)
+              </Label>
+            </div>
+
+            {company.webhookAuthEnabled && (
+              <div className="space-y-2 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <Label>Token de Segurança</Label>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => generateTokenMutation.mutate()}
+                    disabled={generateTokenMutation.isPending}
+                    data-testid="button-generate-token"
+                  >
+                    <Key className="w-4 h-4 mr-2" />
+                    {company.webhookToken ? "Regenerar" : "Gerar"} Token
+                  </Button>
+                </div>
+                {company.webhookToken && (
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      type="password"
+                      value={company.webhookToken}
+                      className="font-mono text-sm"
+                      data-testid="text-webhook-token"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(company.webhookToken);
+                        setCopiedToken(true);
+                        setTimeout(() => setCopiedToken(false), 2000);
+                      }}
+                      data-testid="button-copy-token"
+                    >
+                      {copiedToken ? (
+                        <><Check className="w-4 h-4 mr-2" /> Copiado</>
+                      ) : (
+                        <><Copy className="w-4 h-4 mr-2" /> Copiar</>
+                      )}
+                    </Button>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Use este token no header: <code className="bg-muted px-1 py-0.5 rounded">Authorization: Bearer TOKEN</code>
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Links de Atendimento */}
       {company && (

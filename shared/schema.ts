@@ -24,6 +24,8 @@ export const companies = pgTable("companies", {
   cpfCnpj: text("cpf_cnpj").notNull().unique(), // Can be CPF or CNPJ
   logoUrl: text("logo_url"),
   status: text("status").notNull().default("active"), // active, suspended, trial
+  webhookAuthEnabled: boolean("webhook_auth_enabled").notNull().default(false),
+  webhookToken: text("webhook_token"), // Bearer token for webhook security
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

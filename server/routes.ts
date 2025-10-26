@@ -368,6 +368,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(company);
   });
 
+  // Generate webhook token for company
+  app.post("/api/company/webhook-token/generate", requireAuth, async (req: AuthRequest, res) => {
+    const crypto = await import('crypto');
+    const token = crypto.randomBytes(32).toString('hex');
+    const company = await storage.updateCompany(req.user!.companyId!, {
+      webhookToken: token,
+      webhookAuthEnabled: true,
+    });
+    res.json({ token: company?.webhookToken });
+  });
+
+  // Toggle webhook authentication
+  app.patch("/api/company/webhook-auth", requireAuth, async (req: AuthRequest, res) => {
+    const { enabled } = req.body;
+    const company = await storage.updateCompany(req.user!.companyId!, {
+      webhookAuthEnabled: enabled,
+    });
+    res.json(company);
+  });
+
   // Get company stats
   app.get("/api/stats", requireAuth, async (req: AuthRequest, res) => {
     const stats = await storage.getCompanyStats(req.user!.companyId!);
