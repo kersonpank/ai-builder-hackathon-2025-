@@ -1912,6 +1912,77 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
               temperature: 0.8,
             });
             
+            // Check if the second completion called another function (like create_order)
+            const secondMessage = secondCompletion.choices[0].message;
+            if (secondMessage.tool_calls && secondMessage.tool_calls.length > 0) {
+              const nextToolCall = secondMessage.tool_calls[0];
+              console.log('🔄 Second completion called another function:', nextToolCall.function.name);
+              
+              // If it's create_order, process it now
+              if (nextToolCall.function.name === 'create_order') {
+                try {
+                  const functionArgs = JSON.parse(nextToolCall.function.arguments);
+                  
+                  // SECURITY: Recalculate total from actual product catalog
+                  let total = 0;
+                  const validatedItems = [];
+                  for (const item of functionArgs.items) {
+                    const product = activeProducts.find(p => 
+                      p.id === item.productId || 
+                      p.name.toLowerCase() === item.productId.toLowerCase()
+                    );
+                    if (product) {
+                      const itemTotal = product.price * item.quantity;
+                      total += itemTotal;
+                      validatedItems.push({
+                        productId: product.id,
+                        name: product.name,
+                        price: product.price,
+                        quantity: item.quantity
+                      });
+                    }
+                  }
+                  
+                  functionArgs.items = validatedItems;
+                  
+                  // Create the order
+                  const orderData = {
+                    companyId,
+                    conversationId,
+                    customerName: functionArgs.customerName,
+                    customerPhone: functionArgs.customerPhone,
+                    customerEmail: functionArgs.customerEmail || null,
+                    shippingAddress: functionArgs.shippingAddress,
+                    paymentMethod: functionArgs.paymentMethod || 'pix',
+                    items: functionArgs.items,
+                    total,
+                    status: 'pending' as const,
+                  };
+                  
+                  const order = await storage.createOrder(orderData);
+                  orderConfirmationCode = order.confirmationCode || null;
+                  
+                  assistantMessage = `Pedido confirmado! Total: R$ ${(total / 100).toFixed(2)}, Código: ${orderConfirmationCode}. Agradecemos pela sua compra!`;
+                  
+                  const savedMessage = await storage.createMessage({
+                    conversationId,
+                    role: 'assistant',
+                    content: assistantMessage,
+                    metadata: {
+                      orderId: order.id,
+                      confirmationCode: orderConfirmationCode,
+                      functionCalled: 'create_order'
+                    },
+                  });
+                  
+                  return res.json(savedMessage);
+                } catch (error) {
+                  console.error('Error creating order after CEP lookup:', error);
+                  assistantMessage = "Desculpe, não consegui finalizar o pedido. Por favor, tente novamente.";
+                }
+              }
+            }
+            
             assistantMessage = secondCompletion.choices[0].message.content || 
               (functionResult.success && functionResult.address
                 ? `Encontrei o endereço: ${functionResult.address.street}, ${functionResult.address.neighborhood}, ${functionResult.address.city}-${functionResult.address.state}`
