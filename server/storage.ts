@@ -13,7 +13,9 @@ import {
   type InsertChannel, type Channel,
   type InsertApiLog, type ApiLog,
 } from '@shared/schema';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, or } from 'drizzle-orm';
+import { normalizePhone } from './utils/phoneNormalizer';
+import { normalizeCPF, normalizeCNPJ } from './utils/documentValidator';
 
 export interface IStorage {
   // Admin Users
@@ -60,6 +62,14 @@ export interface IStorage {
   getCustomersByCompany(companyId: string): Promise<Customer[]>;
   getCustomer(id: string, companyId: string): Promise<Customer | undefined>;
   getCustomerByPhone(phone: string, companyId: string): Promise<Customer | undefined>;
+  getCustomerByCPF(cpf: string, companyId: string): Promise<Customer | undefined>;
+  getCustomerByCNPJ(cnpj: string, companyId: string): Promise<Customer | undefined>;
+  findCustomerByIdentifiers(companyId: string, identifiers: {
+    phone?: string;
+    email?: string;
+    cpf?: string;
+    cnpj?: string;
+  }): Promise<Customer | undefined>;
   createCustomer(data: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, companyId: string, data: Partial<InsertCustomer>): Promise<Customer | undefined>;
   updateCustomerStats(id: string, orderTotal: number): Promise<void>;
@@ -301,14 +311,87 @@ export class DbStorage implements IStorage {
   }
 
   async getCustomerByPhone(phone: string, companyId: string): Promise<Customer | undefined> {
+    const normalizedPhone = normalizePhone(phone);
     const result = await db.select().from(customers).where(
-      and(eq(customers.phone, phone), eq(customers.companyId, companyId))
+      and(eq(customers.phone, normalizedPhone), eq(customers.companyId, companyId))
+    );
+    return result[0];
+  }
+
+  async getCustomerByCPF(cpf: string, companyId: string): Promise<Customer | undefined> {
+    const normalizedCPF = normalizeCPF(cpf);
+    if (!normalizedCPF) return undefined;
+    
+    const result = await db.select().from(customers).where(
+      and(eq(customers.cpf, normalizedCPF), eq(customers.companyId, companyId))
+    );
+    return result[0];
+  }
+
+  async getCustomerByCNPJ(cnpj: string, companyId: string): Promise<Customer | undefined> {
+    const normalizedCNPJ = normalizeCNPJ(cnpj);
+    if (!normalizedCNPJ) return undefined;
+    
+    const result = await db.select().from(customers).where(
+      and(eq(customers.cnpj, normalizedCNPJ), eq(customers.companyId, companyId))
+    );
+    return result[0];
+  }
+
+  async findCustomerByIdentifiers(companyId: string, identifiers: {
+    phone?: string;
+    email?: string;
+    cpf?: string;
+    cnpj?: string;
+  }): Promise<Customer | undefined> {
+    const conditions = [eq(customers.companyId, companyId)];
+    
+    const orConditions = [];
+    
+    if (identifiers.phone) {
+      const normalizedPhone = normalizePhone(identifiers.phone);
+      if (normalizedPhone) {
+        orConditions.push(eq(customers.phone, normalizedPhone));
+      }
+    }
+    
+    if (identifiers.email) {
+      orConditions.push(eq(customers.email, identifiers.email));
+    }
+    
+    if (identifiers.cpf) {
+      const normalizedCPF = normalizeCPF(identifiers.cpf);
+      if (normalizedCPF) {
+        orConditions.push(eq(customers.cpf, normalizedCPF));
+      }
+    }
+    
+    if (identifiers.cnpj) {
+      const normalizedCNPJ = normalizeCNPJ(identifiers.cnpj);
+      if (normalizedCNPJ) {
+        orConditions.push(eq(customers.cnpj, normalizedCNPJ));
+      }
+    }
+    
+    if (orConditions.length === 0) return undefined;
+    
+    const result = await db.select().from(customers).where(
+      and(...conditions, or(...orConditions))
     );
     return result[0];
   }
 
   async createCustomer(data: InsertCustomer): Promise<Customer> {
-    const result = await db.insert(customers).values(data).returning();
+    // Normalize phone before inserting
+    const normalizedData = {
+      ...data,
+      phoneRaw: data.phone,
+      phone: normalizePhone(data.phone),
+      cpf: data.cpf ? normalizeCPF(data.cpf) : null,
+      cnpj: data.cnpj ? normalizeCNPJ(data.cnpj) : null,
+    };
+    
+    const result = await db.insert(customers).values(normalizedData).returning();
     return result[0];
   }
 

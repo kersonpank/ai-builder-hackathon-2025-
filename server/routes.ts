@@ -1085,24 +1085,48 @@ PROCESSAMENTO DE PEDIDOS - FUNÇÃO AUTOMÁTICA:
 Você tem acesso à função 'create_order' que cria pedidos automaticamente no sistema.
 
 Quando o cliente quiser fazer um pedido:
-1. Colete as informações obrigatórias de forma natural na conversa:
-   - Nome completo do cliente
-   - Telefone para contato
-   - Endereço completo (CEP, rua, número, complemento, bairro, cidade, estado)
-   - Método de pagamento (PIX, cartão, boleto ou dinheiro)
-   - Produtos e quantidades desejadas
 
-2. Confirme TODAS as informações com o cliente antes de prosseguir
+PASSO 1: Identifique o tipo de cliente
+- Pergunte: "A compra é para você (pessoa física) ou para uma empresa (pessoa jurídica)?"
+- Se PESSOA FÍSICA: colete CPF
+- Se PESSOA JURÍDICA (empresa): colete CNPJ, Razão Social e Nome Fantasia
 
-3. Use a função 'create_order' para criar o pedido automaticamente no sistema
-   - A função vai gerar um código de confirmação único
-   - O pedido será salvo no sistema
+PASSO 2: Colete as informações obrigatórias de forma natural:
+
+Para PESSOA FÍSICA:
+- Nome completo
+- CPF (obrigatório - 11 dígitos)
+- Telefone
+- Email (opcional)
+- Endereço completo (CEP, rua, número, complemento, bairro, cidade, estado)
+- Método de pagamento
+- Produtos e quantidades
+
+Para PESSOA JURÍDICA (empresa):
+- Razão Social (nome oficial da empresa)
+- Nome Fantasia (nome comercial)
+- CNPJ (obrigatório - 14 dígitos)
+- Nome do responsável pela compra
+- Telefone da empresa
+- Email corporativo (opcional)
+- Endereço de entrega
+- Método de pagamento
+- Produtos e quantidades
+
+PASSO 3: Confirme TODAS as informações com o cliente antes de prosseguir
+
+PASSO 4: Use a função 'create_order' para criar o pedido automaticamente
+- A função vai gerar um código de confirmação único
+- O pedido será salvo no sistema
    
-4. Após a função criar o pedido com sucesso, você receberá o código de confirmação
-   - Informe o código ao cliente de forma amigável
-   - Exemplo: "Pedido confirmado! Seu código de confirmação é: XXXX"
+PASSO 5: Após criar o pedido, você receberá o código e valor total
+- Informe ambos ao cliente de forma amigável
+- Exemplo: "Pedido confirmado! Valor total: R$ XX,XX. Seu código de confirmação é: XXXX"
 
-IMPORTANTE: Não tente simular a criação de pedidos. Use sempre a função 'create_order' quando tiver todas as informações necessárias.
+IMPORTANTE: 
+- Não tente simular a criação de pedidos
+- Use sempre a função 'create_order' quando tiver todas as informações necessárias
+- CPF/CNPJ são obrigatórios para validação fiscal
 
 Seu objetivo é:
 1. Atender o cliente de forma personalizada e natural
@@ -1135,9 +1159,14 @@ Seu objetivo é:
             parameters: {
               type: "object",
               properties: {
+                customerType: {
+                  type: "string",
+                  enum: ["individual", "business"],
+                  description: "Tipo de cliente: 'individual' (pessoa física) ou 'business' (pessoa jurídica/empresa)"
+                },
                 customerName: {
                   type: "string",
-                  description: "Nome completo do cliente"
+                  description: "Nome completo do cliente (ou nome do responsável se for empresa)"
                 },
                 customerPhone: {
                   type: "string",
@@ -1146,6 +1175,22 @@ Seu objetivo é:
                 customerEmail: {
                   type: "string",
                   description: "Email do cliente (opcional)"
+                },
+                cpf: {
+                  type: "string",
+                  description: "CPF do cliente (obrigatório para pessoa física - apenas números)"
+                },
+                cnpj: {
+                  type: "string",
+                  description: "CNPJ da empresa (obrigatório para pessoa jurídica - apenas números)"
+                },
+                companyName: {
+                  type: "string",
+                  description: "Razão social da empresa (para pessoa jurídica)"
+                },
+                tradeName: {
+                  type: "string",
+                  description: "Nome fantasia da empresa (para pessoa jurídica)"
                 },
                 shippingAddress: {
                   type: "object",
@@ -1180,7 +1225,7 @@ Seu objetivo é:
                   }
                 }
               },
-              required: ["customerName", "customerPhone", "shippingAddress", "paymentMethod", "items"]
+              required: ["customerType", "customerName", "customerPhone", "shippingAddress", "paymentMethod", "items"]
             }
           }
         }
@@ -1245,9 +1290,15 @@ Seu objetivo é:
             const order = await storage.createOrder(orderData);
             orderConfirmationCode = order.confirmationCode || null;
             
-            // Save/update customer in the system
+            // Save/update customer in the system with deduplication
             try {
-              const existingCustomer = await storage.getCustomerByPhone(functionArgs.customerPhone, companyId);
+              // Try to find existing customer by any identifier
+              const existingCustomer = await storage.findCustomerByIdentifiers(companyId, {
+                phone: functionArgs.customerPhone,
+                email: functionArgs.customerEmail,
+                cpf: functionArgs.cpf,
+                cnpj: functionArgs.cnpj,
+              });
               
               if (existingCustomer) {
                 // Update existing customer with new info and stats
@@ -1255,6 +1306,11 @@ Seu objetivo é:
                   name: functionArgs.customerName,
                   email: functionArgs.customerEmail || existingCustomer.email,
                   shippingAddress: functionArgs.shippingAddress,
+                  customerType: functionArgs.customerType || 'individual',
+                  cpf: functionArgs.cpf || existingCustomer.cpf,
+                  cnpj: functionArgs.cnpj || existingCustomer.cnpj,
+                  companyName: functionArgs.companyName || existingCustomer.companyName,
+                  tradeName: functionArgs.tradeName || existingCustomer.tradeName,
                 });
                 await storage.updateCustomerStats(existingCustomer.id, total);
               } else {
@@ -1265,9 +1321,20 @@ Seu objetivo é:
                   phone: functionArgs.customerPhone,
                   email: functionArgs.customerEmail || null,
                   shippingAddress: functionArgs.shippingAddress,
+                  customerType: functionArgs.customerType || 'individual',
+                  cpf: functionArgs.cpf || null,
+                  cnpj: functionArgs.cnpj || null,
+                  companyName: functionArgs.companyName || null,
+                  tradeName: functionArgs.tradeName || null,
+                  firstSeenChannel: 'chatweb',
+                  channels: ['chatweb'],
                 });
                 // Update stats for the new customer
-                const newCustomer = await storage.getCustomerByPhone(functionArgs.customerPhone, companyId);
+                const newCustomer = await storage.findCustomerByIdentifiers(companyId, {
+                  phone: functionArgs.customerPhone,
+                  cpf: functionArgs.cpf,
+                  cnpj: functionArgs.cnpj,
+                });
                 if (newCustomer) {
                   await storage.updateCustomerStats(newCustomer.id, total);
                 }
