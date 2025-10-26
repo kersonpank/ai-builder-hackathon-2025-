@@ -795,6 +795,60 @@ ${extractedText.substring(0, 15000)}`;
     try {
       const { status } = z.object({ status: z.string() }).parse(req.body);
       const order = await storage.updateOrderStatus(req.params.id, req.user!.companyId!, status);
+      
+      // Send automatic notification to the conversation if order is linked to one
+      if (order && order.conversationId) {
+        try {
+          // Get company info for personalized message
+          const company = await storage.getCompany(req.user!.companyId!);
+          
+          // Create friendly status messages
+          const companyName = company?.name ?? 'nossa equipe';
+          const statusMessages: Record<string, string> = {
+            'pending': `Seu pedido #${order.confirmationCode} foi registrado e está aguardando confirmação.`,
+            'confirmed': `Boa notícia! Seu pedido #${order.confirmationCode} foi confirmado e está sendo preparado.`,
+            'preparing': `Seu pedido #${order.confirmationCode} está sendo preparado com todo cuidado!`,
+            'shipped': `Seu pedido #${order.confirmationCode} saiu para entrega! Em breve estará com você.`,
+            'delivered': `Seu pedido #${order.confirmationCode} foi entregue! Esperamos que aproveite. Obrigado por comprar com ${companyName}!`,
+            'cancelled': `Seu pedido #${order.confirmationCode} foi cancelado. Se tiver dúvidas, estou aqui para ajudar!`,
+          };
+          
+          const notificationMessage = statusMessages[status] || 
+            `Status do seu pedido #${order.confirmationCode} atualizado para: ${status}`;
+          
+          // Send automated agent message to the conversation
+          await storage.createMessage({
+            conversationId: order.conversationId,
+            role: 'assistant',
+            content: notificationMessage,
+            metadata: {
+              type: 'order_status_update',
+              orderId: order.id,
+              status: status,
+              automated: true,
+            },
+          });
+          
+          // Log the notification
+          await storage.createApiLog({
+            companyId: req.user!.companyId!,
+            type: 'order_status_notification',
+            endpoint: '/api/orders/:id/status',
+            method: 'PATCH',
+            requestData: { orderId: order.id, newStatus: status },
+            responseData: { messageSent: true },
+            metadata: {
+              conversationId: order.conversationId,
+              confirmationCode: order.confirmationCode,
+            },
+          });
+          
+        } catch (notificationError) {
+          console.error('Error sending order status notification:', notificationError);
+          // Don't fail the status update if notification fails
+        }
+      }
+      
       res.json(order);
     } catch (error) {
       res.status(400).json({ error: "Erro ao atualizar pedido" });
@@ -998,10 +1052,10 @@ IMPORTANTE - Estilo de comunicação:
 - ${responseStyleInstruction}
 - Seja natural e conversacional
 - Quando recomendar produtos, mencione EXATAMENTE o nome do produto como aparece no catálogo
-- Use emojis de forma moderada para dar personalidade
+- Seja amigável e prestativo
 
 Você tem acesso ao catálogo de produtos da empresa. Quando mencionar um produto específico, diga algo como:
-"Olha só esse [NOME DO PRODUTO]! 😍" ou "Te recomendo o [NOME DO PRODUTO]!"
+"Olha só esse [NOME DO PRODUTO]!" ou "Te recomendo o [NOME DO PRODUTO]!"
 
 Catálogo disponível (${activeProducts.length} produtos):
 ${activeProducts.slice(0, 20).map(p => `- [${p.name}]: R$ ${(p.price / 100).toFixed(2)}${p.description ? ` - ${p.description.substring(0, 100)}` : ''}`).join('\n')}
@@ -1027,7 +1081,7 @@ Quando o cliente quiser fazer um pedido:
    
 4. Após a função criar o pedido com sucesso, você receberá o código de confirmação
    - Informe o código ao cliente de forma amigável
-   - Exemplo: "✅ Pedido confirmado! Seu código de confirmação é: XXXX"
+   - Exemplo: "Pedido confirmado! Seu código de confirmação é: XXXX"
 
 IMPORTANTE: Não tente simular a criação de pedidos. Use sempre a função 'create_order' quando tiver todas as informações necessárias.
 
@@ -1214,7 +1268,7 @@ Seu objetivo é:
             });
             
             assistantMessage = secondCompletion.choices[0].message.content || 
-              `✅ Pedido confirmado! Seu código de confirmação é: ${order.confirmationCode}`;
+              `Pedido confirmado! Seu código de confirmação é: ${order.confirmationCode}`;
             
           } catch (error) {
             console.error('Error creating order via function call:', error);
