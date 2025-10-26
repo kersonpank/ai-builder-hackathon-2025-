@@ -1332,7 +1332,7 @@ Seu objetivo é:
         temperature: 0.8,
       });
 
-      let assistantMessage = completion.choices[0].message.content || "";
+      let assistantMessage = completion.choices[0].message.content?.trim() || "";
       let orderConfirmationCode: string | null = null;
 
       // Check if the agent wants to call a function
@@ -1552,8 +1552,9 @@ Seu objetivo é:
         }
       }
 
-      if (!assistantMessage) {
-        assistantMessage = "Desculpe, não consegui processar sua mensagem.";
+      if (!assistantMessage || assistantMessage.length === 0) {
+        // If the model didn't return a message, generate a simple fallback
+        assistantMessage = "Olá! Como posso ajudar você hoje?";
       }
 
       // Log OpenAI prompt for admin monitoring
