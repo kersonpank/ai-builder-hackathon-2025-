@@ -1593,6 +1593,10 @@ Seu objetivo é:
       const matches = Array.from(assistantMessage.matchAll(productRegex));
       const mentionedProductNames = matches.map(m => m[1].trim());
       
+      console.log('Assistant message:', assistantMessage);
+      console.log('Product mentions found:', mentionedProductNames);
+      console.log('Active products:', activeProducts.map(p => p.name));
+      
       // For each mentioned product, send a SEPARATE message with image and info
       // This creates one message bubble per product
       const productMessages = [];
@@ -1601,7 +1605,10 @@ Seu objetivo é:
           p.name.toLowerCase() === productName.toLowerCase()
         );
         
+        console.log(`Looking for product "${productName}":`, product ? 'FOUND' : 'NOT FOUND');
+        
         if (product && product.imageUrls && product.imageUrls.length > 0) {
+          console.log('Sending product image:', product.name, product.imageUrls[0]);
           // Create product info message with image
           const productInfo = `${product.name}\nR$ ${(product.price / 100).toFixed(2)}${product.description ? `\n${product.description}` : ''}`;
           
