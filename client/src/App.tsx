@@ -9,6 +9,7 @@ import { CartProvider } from "@/context/CartContext";
 
 // Pages
 import NotFound from "@/pages/not-found";
+import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -35,12 +36,12 @@ function ProtectedRoute({ component: Component, requireAuth = true, adminOnly = 
       const userType = localStorage.getItem("user_type");
       
       if (!token) {
-        setLocation(adminOnly ? "/admin/login" : "/");
+        setLocation(adminOnly ? "/admin/login" : "/login");
         return;
       }
       
       if (adminOnly && userType !== "admin") {
-        setLocation("/");
+        setLocation("/login");
         return;
       }
       
@@ -81,7 +82,8 @@ function Router() {
   return (
     <Switch>
       {/* Public Routes */}
-      <Route path="/" component={Login} />
+      <Route path="/" component={Landing} />
+      <Route path="/login" component={Login} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/chat/:companyId" component={ChatWeb} />
