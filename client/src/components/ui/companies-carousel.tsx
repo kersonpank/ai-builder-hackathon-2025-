@@ -105,7 +105,7 @@ export const CompaniesCarousel = React.forwardRef<
         {companies.map((company) => (
           <Link
             key={company.id}
-            href={`/chatweb/${company.id}`}
+            href={`/chat/${company.id}`}
             data-testid={`link-company-${company.id}`}
           >
             <div className="flex-shrink-0 w-[180px] sm:w-[200px] snap-start cursor-pointer group">
