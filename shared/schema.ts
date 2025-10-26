@@ -164,6 +164,14 @@ export const conversations = pgTable("conversations", {
   takenOverAt: timestamp("taken_over_at"), // when takeover happened
   needsHumanAttention: boolean("needs_human_attention").notNull().default(false), // AI requested human help
   transferReason: text("transfer_reason"), // why AI transferred to human
+  
+  // Conversation Intelligence Fields
+  currentIntent: text("current_intent"), // "browsing", "purchase_intent", "support", "complaint", etc.
+  sentimentScore: integer("sentiment_score"), // -100 (very negative) to +100 (very positive)
+  complexityScore: integer("complexity_score"), // 0-100, how difficult/confusing the conversation is
+  activeAgentType: text("active_agent_type").default("seller"), // "seller", "consultant", "support", "technical"
+  analysisUpdatedAt: timestamp("analysis_updated_at"), // when analysis was last run
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
