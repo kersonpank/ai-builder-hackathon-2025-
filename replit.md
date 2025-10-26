@@ -15,6 +15,19 @@ Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for b
 - Bulk product import with AI-powered data extraction.
 - Advanced agent configuration for personality and behavior.
 
+## Recent Changes
+
+**October 26, 2025 - Omnichannel Customer Identity & B2B Support**
+- Implemented omnichannel customer identification system using phone, email, CPF, and CNPJ
+- Added phone normalization utility handling Brazilian formats (carrier codes, international prefixes)
+- Created CPF/CNPJ validation utility with check-digit algorithms
+- Enhanced customer schema with B2B fields: customerType, companyName, tradeName, stateRegistration
+- Added channel tracking: firstSeenChannel, channels array for cross-platform customer recognition
+- Updated AI agent to collect CPF (individuals) or CNPJ + company details (businesses)
+- Implemented customer deduplication via findCustomerByIdentifiers across all identifiers
+- Updated customers page UI to display B2C/B2B indicators and formatted documents
+- Phone numbers normalized to prevent duplicates across input formats
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -51,6 +64,7 @@ Preferred communication style: Simple, everyday language.
 - **Admin Users:** Global access.
 - **Companies:** Tenant entities with status, logo URL, and `cpfCnpj` field (accommodates both CPF and CNPJ).
 - **Users:** Company-specific with roles.
+- **Customers:** Omnichannel customer records with unique identification via `phone` (normalized), `email`, `cpf`, or `cnpj`. Fields include: `customerType` (individual/business), `companyName`, `tradeName`, `stateRegistration`, `firstSeenChannel`, and `channels` array for cross-platform tracking.
 - **Agents:** AI agent configurations (tone, instructions, personality presets, context documents).
 - **Products:** Company catalogs with pricing, metadata, array of up to 3 image URLs, and `status` (draft/published).
 - **Orders:** Customer orders with status and `confirmationCode`.
