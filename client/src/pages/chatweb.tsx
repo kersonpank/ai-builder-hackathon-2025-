@@ -104,8 +104,18 @@ export default function ChatWeb() {
       }
       return response.json();
     },
-    onSuccess: (assistantMessage) => {
+    onSuccess: (response: any) => {
+      // Handle both old format (single message) and new format (message + productMessages)
+      const assistantMessage = response.message || response;
+      const productMessages = response.productMessages || [];
+      
+      // Add main message
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Add product image messages
+      if (productMessages.length > 0) {
+        setMessages(prev => [...prev, ...productMessages]);
+      }
       
       // Check if agent added items to cart
       if (assistantMessage.metadata && 'cartItems' in assistantMessage.metadata) {
