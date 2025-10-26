@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Send, Bot, User, Image as ImageIcon, Mic, X } from "lucide-react";
+import { Send, Bot, User, Image as ImageIcon, Mic, X, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -183,21 +183,31 @@ export default function ChatWeb() {
     <div className="h-screen flex flex-col bg-gradient-to-br from-primary/5 via-background to-accent/5">
       {/* Header */}
       <div className="bg-card border-b px-6 py-4 shadow-sm">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
-          <Avatar className="h-12 w-12">
-            {company.logoUrl && (
-              <AvatarImage src={company.logoUrl} alt={company.name} />
-            )}
-            <AvatarFallback className="bg-primary text-primary-foreground text-lg">
-              {company.name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-xl font-bold">{company.name}</h1>
-            <p className="text-sm text-muted-foreground">
-              {agent?.name || "Assistente Virtual"}
-            </p>
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-12 w-12">
+              {company.logoUrl && (
+                <AvatarImage src={company.logoUrl} alt={company.name} />
+              )}
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                {company.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-xl font-bold">{company.name}</h1>
+              <p className="text-sm text-muted-foreground">
+                {agent?.name || "Assistente Virtual"}
+              </p>
+            </div>
           </div>
+          <Button 
+            variant="outline"
+            onClick={() => window.location.href = `/catalog/${companyId}`}
+            data-testid="button-view-catalog"
+          >
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            Ver Catálogo
+          </Button>
         </div>
       </div>
 

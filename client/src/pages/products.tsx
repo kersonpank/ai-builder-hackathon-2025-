@@ -411,8 +411,16 @@ export default function Products() {
           {products.map((product) => (
             <Card key={product.id} className="overflow-hidden">
               <CardHeader className="p-0">
-                <div className="aspect-square bg-muted flex items-center justify-center">
-                  <Package className="w-16 h-16 text-muted-foreground" />
+                <div className="aspect-square bg-muted flex items-center justify-center relative overflow-hidden">
+                  {product.imageUrls && product.imageUrls.length > 0 ? (
+                    <img 
+                      src={product.imageUrls[0]} 
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Package className="w-16 h-16 text-muted-foreground" />
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-4 space-y-3">
