@@ -1725,11 +1725,14 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
         } else if (toolCall.type === "function" && toolCall.function.name === "add_to_cart") {
           try {
             const functionArgs = JSON.parse(toolCall.function.arguments);
+            console.log('🛒 add_to_cart called with args:', JSON.stringify(functionArgs));
+            console.log('📦 Available products:', activeProducts.map(p => ({ id: p.id, name: p.name })));
             
             // Build cart items with real product data
             const cartItems = [];
             for (const item of functionArgs.items) {
               const product = activeProducts.find(p => p.id === item.productId);
+              console.log('🔍 Looking for product ID:', item.productId, 'Found:', !!product);
               if (product) {
                 cartItems.push({
                   id: product.id,
@@ -1740,6 +1743,8 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
                 });
               }
             }
+            
+            console.log('✅ Cart items built:', cartItems.length, 'items');
             
             if (cartItems.length > 0) {
               // Send function result back to the model
