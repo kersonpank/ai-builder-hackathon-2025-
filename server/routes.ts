@@ -1031,6 +1031,78 @@ ${extractedText.substring(0, 15000)}`;
     res.json(conversations);
   });
 
+  // Get conversation analytics and insights
+  app.get("/api/conversations/analytics", requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const conversations = await storage.getConversationsByCompany(req.user!.companyId!);
+      
+      // Calculate aggregate metrics
+      const totalConversations = conversations.length;
+      const activeConversations = conversations.filter(c => c.status === 'active').length;
+      const humanTakenOver = conversations.filter(c => c.mode === 'human' || c.mode === 'hybrid').length;
+      
+      // Sentiment distribution
+      const sentimentScores = conversations.filter(c => c.sentimentScore !== null).map(c => c.sentimentScore!);
+      const avgSentiment = sentimentScores.length > 0 
+        ? Math.round(sentimentScores.reduce((a, b) => a + b, 0) / sentimentScores.length)
+        : 0;
+      const positiveSentiment = sentimentScores.filter(s => s > 30).length;
+      const neutralSentiment = sentimentScores.filter(s => s >= -30 && s <= 30).length;
+      const negativeSentiment = sentimentScores.filter(s => s < -30).length;
+      
+      // Intent distribution
+      const intentCounts: Record<string, number> = {};
+      conversations.forEach(c => {
+        if (c.currentIntent) {
+          intentCounts[c.currentIntent] = (intentCounts[c.currentIntent] || 0) + 1;
+        }
+      });
+      
+      // Agent type distribution
+      const agentTypeCounts: Record<string, number> = {};
+      conversations.forEach(c => {
+        if (c.activeAgentType) {
+          agentTypeCounts[c.activeAgentType] = (agentTypeCounts[c.activeAgentType] || 0) + 1;
+        }
+      });
+      
+      // Complexity distribution
+      const complexityScores = conversations.filter(c => c.complexityScore !== null).map(c => c.complexityScore!);
+      const avgComplexity = complexityScores.length > 0
+        ? Math.round(complexityScores.reduce((a, b) => a + b, 0) / complexityScores.length)
+        : 0;
+      const lowComplexity = complexityScores.filter(s => s < 30).length;
+      const mediumComplexity = complexityScores.filter(s => s >= 30 && s <= 60).length;
+      const highComplexity = complexityScores.filter(s => s > 60).length;
+      
+      res.json({
+        overview: {
+          totalConversations,
+          activeConversations,
+          humanTakenOver,
+          aiHandled: totalConversations - humanTakenOver,
+        },
+        sentiment: {
+          average: avgSentiment,
+          positive: positiveSentiment,
+          neutral: neutralSentiment,
+          negative: negativeSentiment,
+        },
+        intents: intentCounts,
+        agentTypes: agentTypeCounts,
+        complexity: {
+          average: avgComplexity,
+          low: lowComplexity,
+          medium: mediumComplexity,
+          high: highComplexity,
+        },
+      });
+    } catch (error) {
+      console.error('Analytics error:', error);
+      res.status(500).json({ error: "Erro ao calcular analytics" });
+    }
+  });
+
   // Takeover conversation (operator assumes control)
   app.post("/api/conversations/:id/takeover", requireAuth, async (req: AuthRequest, res) => {
     try {
