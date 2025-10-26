@@ -1,12 +1,13 @@
 import { db } from './db';
 import { 
-  adminUsers, companies, users, agents, products, orders, conversations, messages, channels, apiLogs,
+  adminUsers, companies, users, agents, products, orders, customers, conversations, messages, channels, apiLogs,
   type InsertAdminUser, type AdminUser,
   type InsertCompany, type Company,
   type InsertUser, type User,
   type InsertAgent, type Agent,
   type InsertProduct, type Product,
   type InsertOrder, type Order,
+  type InsertCustomer, type Customer,
   type InsertConversation, type Conversation,
   type InsertMessage, type Message,
   type InsertChannel, type Channel,
@@ -54,6 +55,14 @@ export interface IStorage {
   getOrder(id: string, companyId: string): Promise<Order | undefined>;
   createOrder(data: InsertOrder): Promise<Order>;
   updateOrderStatus(id: string, companyId: string, status: string): Promise<Order | undefined>;
+  
+  // Customers
+  getCustomersByCompany(companyId: string): Promise<Customer[]>;
+  getCustomer(id: string, companyId: string): Promise<Customer | undefined>;
+  getCustomerByPhone(phone: string, companyId: string): Promise<Customer | undefined>;
+  createCustomer(data: InsertCustomer): Promise<Customer>;
+  updateCustomer(id: string, companyId: string, data: Partial<InsertCustomer>): Promise<Customer | undefined>;
+  updateCustomerStats(id: string, orderTotal: number): Promise<void>;
   
   // Conversations
   getConversationsByCompany(companyId: string): Promise<Conversation[]>;
@@ -277,6 +286,48 @@ export class DbStorage implements IStorage {
       and(eq(orders.id, id), eq(orders.companyId, companyId))
     ).returning();
     return result[0];
+  }
+
+  // Customers
+  async getCustomersByCompany(companyId: string): Promise<Customer[]> {
+    return db.select().from(customers).where(eq(customers.companyId, companyId)).orderBy(desc(customers.createdAt));
+  }
+
+  async getCustomer(id: string, companyId: string): Promise<Customer | undefined> {
+    const result = await db.select().from(customers).where(
+      and(eq(customers.id, id), eq(customers.companyId, companyId))
+    );
+    return result[0];
+  }
+
+  async getCustomerByPhone(phone: string, companyId: string): Promise<Customer | undefined> {
+    const result = await db.select().from(customers).where(
+      and(eq(customers.phone, phone), eq(customers.companyId, companyId))
+    );
+    return result[0];
+  }
+
+  async createCustomer(data: InsertCustomer): Promise<Customer> {
+    const result = await db.insert(customers).values(data).returning();
+    return result[0];
+  }
+
+  async updateCustomer(id: string, companyId: string, data: Partial<InsertCustomer>): Promise<Customer | undefined> {
+    const result = await db.update(customers).set({ 
+      ...data, 
+      updatedAt: new Date() 
+    }).where(
+      and(eq(customers.id, id), eq(customers.companyId, companyId))
+    ).returning();
+    return result[0];
+  }
+
+  async updateCustomerStats(id: string, orderTotal: number): Promise<void> {
+    await db.update(customers).set({
+      totalOrders: sql`${customers.totalOrders} + 1`,
+      totalSpent: sql`${customers.totalSpent} + ${orderTotal}`,
+      updatedAt: new Date()
+    }).where(eq(customers.id, id));
   }
 
   // Conversations
