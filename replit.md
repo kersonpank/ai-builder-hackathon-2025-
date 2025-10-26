@@ -2,263 +2,91 @@
 
 ## Overview
 
-Omni.AI is a B2B SaaS platform that provides AI-powered customer service agents for businesses. The platform enables companies to create intelligent chatbots that handle product inquiries, process orders, and provide post-sales support through a conversational interface. It features a multi-tenant architecture with separate admin and company user portals.
+Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for businesses. It enables companies to deploy intelligent chatbots for product inquiries, order processing, and post-sales support through a conversational interface. The platform features a multi-tenant architecture with distinct admin and company user portals.
 
-**Key Features:**
-- Multi-tenant SaaS platform for managing multiple companies
-- AI-powered conversational agents with customizable personalities
-- Product catalog management and recommendations
-- Order processing and tracking
-- Public-facing chat widget for end customers
-- Admin dashboard for platform operators
-- Company dashboard for business owners
+**Key Capabilities:**
+- Multi-tenant SaaS for managing multiple companies.
+- Customizable AI conversational agents.
+- Product catalog management and recommendations.
+- Order processing and tracking.
+- Public-facing chat widget.
+- Admin and company dashboards.
+- E-commerce catalog with shopping cart functionality.
+- Bulk product import with AI-powered data extraction.
+- Advanced agent configuration for personality and behavior.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes
-
-**October 25, 2025 - Multi-Modal Chat & Order Confirmation**
-- **Image upload in ChatWeb**: Customers can upload product images for AI analysis
-  - Frontend: Image icon button with file preview before sending
-  - Backend: Multer multipart processing, image saved to object storage
-  - AI integration: Image URL sent to AI for context-aware responses
-- **Voice recording with transcription**: Customers can record voice messages
-  - Frontend: Mic button with pulsing animation when recording
-  - Backend: OpenAI Whisper API transcribes audio to Portuguese text
-  - AI integration: Transcription added to message content automatically
-- **Order confirmation codes**: 4-digit alphanumeric codes generated for orders
-  - Schema: Added `confirmationCode` field to orders table (varchar 4)
-  - Generation: Auto-generated using unambiguous chars (no 0/O, I/1)
-  - Uniqueness: Server validates codes are unique before creation
-  - AI prompt: Instructions added for collecting order info and providing code
-- **ChatWeb security**: Conversation ownership verified before processing messages
-- **Agent page**: Company info card added (name, segment, document)
-- **Order PDV**: Reference form documents required fields for AI order processing
-
-**October 25, 2025 - Multi-tenant Security & Operational Improvements**
-- **ChatWeb image display fixed**: Products now filter by `status='published'` AND `isActive=true` to exclude drafts
-- **Multi-tenant security**: Added validation to verify conversation ownership before processing messages in ChatWeb
-- **Product visibility**: Only published products appear in ChatWeb and AI context, drafts remain hidden
-
-**October 25, 2025 - Bulk Product Import with AI**
-- **Bulk import feature**: New workflow for mass product upload via PDF, XML, or TXT files
-  - **AI-powered extraction**: OpenAI GPT-4o-mini extracts product data (name, description, price, category, stock) from uploaded documents
-  - **Draft workflow**: Imported products saved as "draft" status for review before publishing
-  - **Review interface**: New /product-drafts page for product-by-product review and editing
-  - **Database schema**: Added `status` (draft/published) and `source` (manual/bulk_import) fields to products table
-  - **Backend endpoints**:
-    - POST /api/products/bulk-import - Upload file, extract with AI, save as drafts
-    - GET /api/products/drafts - Fetch all draft products for review
-    - POST /api/products/:id/publish - Publish individual product
-    - POST /api/products/publish-all - Publish all drafts at once
-  - **Frontend flow**:
-    - "Importação em Massa" button in products page with file upload dialog
-    - Auto-navigation to review page after successful import
-    - Edit fields (name, description, price, category, stock) with proper type conversions
-    - Add up to 3 images per product during review
-    - Approve products individually or all at once
-  - **User flow**: Upload file → AI extracts products → Review/edit/add images → Publish → Products go live
-
-**October 25, 2025 - Advanced Agent Configuration Dashboard**
-- **New Agent configuration page**: Added comprehensive /agent dashboard section for seller personality and behavior settings
-  - **Seller personality presets**: 3 distinct profiles with visual selection
-    - Passive: Responds to queries without pushing sales
-    - Balanced: Recommends products when relevant, highlights benefits
-    - Proactive: Creates urgency, offers upsell/cross-sell, actively closes sales
-  - **Advanced settings**: Sales goals, product focus strategy, response style customization
-  - **Document upload**: Context documents (PDF, TXT, DOCX) for agent knowledge base
-  - **Database schema**: New fields added to agents table:
-    - `seller_personality` (passive/balanced/proactive)
-    - `context_documents` (text array of uploaded document URLs)
-    - `sales_goals`, `product_focus_strategy`, `response_style` (text fields)
-  - **Backend endpoints**:
-    - PATCH /api/agent - Update agent configuration
-    - POST /api/agent/documents - Upload context documents to object storage
-  - **AI prompt enhancement**: ChatWeb system prompt now dynamically adapts based on:
-    - Selected seller personality with detailed behavioral instructions
-    - Sales goals and product focus strategy integration
-    - Response style preferences (short/medium/detailed)
-  - **Frontend**: Visual card-based personality selector with characteristics, reactive form state sync
-  - **Navigation**: Added "Agente" menu item to sidebar with Bot icon
-
-**October 25, 2025 - Multiple Product Images Feature**
-- **Multiple product images**: Products now support up to 3 images instead of single image
-  - Database: Updated products.imageUrls to text[] array field
-  - Backend: New `/api/products/:id/images` endpoint for multi-image upload
-  - Image processing: Automatic resize to 800x800px using Sharp library
-  - Storage: Images saved to object storage public directory
-  - Frontend: Updated product form with multi-image upload UI and previews
-  - Display: Grid preview of selected/uploaded images with file count validation
-- **AI agent enhanced with product images**:
-  - Prompt updated to use short, humanized text (2-3 sentences max)
-  - Products mentioned using bracket syntax [Product Name] for reliable parsing
-  - AI responses automatically include product images in message metadata
-  - Detection logic extracts product names and attaches first image + hasMore flag
-- **ChatWeb image display**:
-  - Messages now show product images above assistant text
-  - Images displayed in square aspect ratio with border
-  - "Mais imagens disponíveis" indicator when product has 2-3 images
-  - Message metadata structure: `{ productImages: [{name, imageUrl, hasMore}] }`
-
-**October 25, 2025 - Login Simplification and Logo Upload**
-- **Login simplified**: Removed CPF/CNPJ requirement from login page, now uses only email/password
-  - Backend: Added `getUserByEmailOnly` method for global email authentication
-  - Frontend: Updated login.tsx to remove CPF/CNPJ field
-  - Improved UX: Users no longer need to remember their registration document
-- **Logo upload implemented**: Added company logo upload to onboarding Step 1
-  - Automatic image resizing to 200x200px using Sharp library
-  - Storage: Logos saved to object storage public directory
-  - Database persistence: Logo URL stored in companies.logoUrl field via updateCompanyLogo method
-  - Frontend: Preview shown during upload, logo displayed in ChatWeb header
-  - Fallback: Company name initial shown when no logo is uploaded
-- **Bug fixes**: Fixed apiRequest calls in onboarding.tsx and login.tsx
-- **Admin credentials**: Admin password updated to 123456789 (admin@omni.ai)
-
-**Previous Session - CPF/CNPJ Support**
-- Added support for both CPF and CNPJ in company registration
-- Database: Renamed `cnpj` column to `cpfCnpj` in companies table
-- Validation: Minimum length changed from 14 to 11 characters to accommodate CPF
-- Testing: E2E test passed - registration flow confirmed working
-
 ## System Architecture
 
 ### Frontend Architecture
 
-**Framework & Build System:**
-- React 18 with TypeScript for type safety
-- Vite as the build tool and development server
-- Wouter for lightweight client-side routing
-- TanStack Query (React Query) for server state management and caching
+**Framework & Build System:** React 18, TypeScript, Vite, Wouter (routing), TanStack Query (server state).
 
-**UI Component System:**
-- shadcn/ui components built on Radix UI primitives
-- Tailwind CSS for styling with custom design tokens
-- Material Design 3 principles optimized for B2B data-dense interfaces
-- Custom fonts: Inter (UI), Manrope (headings), JetBrains Mono (code)
-- Responsive design with mobile-first breakpoints
+**UI Component System:** shadcn/ui (built on Radix UI), Tailwind CSS (styling), Material Design 3 principles, custom fonts (Inter, Manrope, JetBrains Mono). Responsive design with mobile-first breakpoints.
 
-**State Management:**
-- React Query for server state (API responses, caching, mutations)
-- React Hook Form with Zod for form validation
-- Local storage for authentication tokens
+**State Management:** React Query for server state, React Hook Form with Zod for form validation, local storage for authentication tokens.
 
-**Key Design Decisions:**
-- Component-driven architecture with reusable UI primitives
-- Path aliases (@/, @shared/) for clean imports
-- Progressive disclosure pattern for complex interfaces
-- Responsive layouts using Tailwind grid system
+**Key Design Decisions:** Component-driven architecture, path aliases, progressive disclosure for complex interfaces, responsive layouts using Tailwind grid.
 
 ### Backend Architecture
 
-**Runtime & Framework:**
-- Node.js with Express.js for the API server
-- TypeScript with ESM modules for type safety and modern syntax
-- esbuild for production bundling
+**Runtime & Framework:** Node.js, Express.js, TypeScript with ESM, esbuild for bundling.
 
-**Authentication & Authorization:**
-- JWT-based authentication stored in HTTP-only cookies
-- bcrypt for password hashing
-- Role-based access control with two user types:
-  - Admin users (platform operators)
-  - Company users (business owners/members)
-- Middleware functions for route protection (requireAuth, requireAdminAuth, optionalAuth)
+**Authentication & Authorization:** JWT-based (HTTP-only cookies), bcrypt for password hashing, Role-Based Access Control (Admin, Company users), middleware for route protection.
 
-**API Architecture:**
-- RESTful API design with resource-based endpoints
-- Zod schemas for request/response validation
-- Shared schema definitions between client and server
-- Separation of concerns: routes, storage layer, authentication
+**API Architecture:** RESTful API, Zod schemas for validation, shared schemas between client/server, separation of concerns.
 
-**Data Storage Strategy:**
-- Drizzle ORM for type-safe database operations
-- Schema-first approach with TypeScript types generated from database schema
-- Storage abstraction layer (storage.ts) separating business logic from database queries
-- Database migrations managed through Drizzle Kit
+**Data Storage Strategy:** Drizzle ORM (type-safe), schema-first approach, storage abstraction layer, Drizzle Kit for migrations.
 
-**Key Design Decisions:**
-- Monorepo structure with shared types between client/server
-- Fail-fast approach for missing environment variables
-- Request logging middleware for API debugging
-- Separation of admin and user authentication flows
+**Key Design Decisions:** Monorepo structure, fail-fast for environment variables, request logging, separate admin/user authentication.
 
 ### Database Schema
 
-**Multi-Tenancy Model:**
-- Companies table as the primary tenant identifier
-- All tenant-specific data includes companyId foreign key
-- Cascade delete ensures data integrity when companies are removed
+**Multi-Tenancy Model:** `Companies` table as primary tenant identifier, all tenant-specific data includes `companyId` foreign key with cascade delete.
 
 **Core Entities:**
+- **Admin Users:** Global access.
+- **Companies:** Tenant entities with status, logo URL, and `cpfCnpj` field (accommodates both CPF and CNPJ).
+- **Users:** Company-specific with roles.
+- **Agents:** AI agent configurations (tone, instructions, personality presets, context documents).
+- **Products:** Company catalogs with pricing, metadata, array of up to 3 image URLs, and `status` (draft/published).
+- **Orders:** Customer orders with status and `confirmationCode`.
+- **Conversations:** Chat sessions.
+- **Messages:** Individual chat messages with role and metadata (e.g., product images, attached images).
+- **Channels:** Communication channel configurations.
 
-1. **Admin Users** - Platform operators with global access
-2. **Companies** - Tenant entities with status management (active/suspended/trial), logo URL
-3. **Users** - Company-specific users with role-based permissions
-4. **Agents** - AI agent configurations per company (tone, instructions, status)
-5. **Products** - Company product catalogs with pricing, metadata, and image URLs array (max 3)
-6. **Orders** - Customer orders with status tracking
-7. **Conversations** - Chat sessions with channel attribution
-8. **Messages** - Individual chat messages with role tracking (user/assistant) and metadata for product images
-9. **Channels** - Communication channel configurations
+**Database Technology:** PostgreSQL via Neon serverless driver, WebSocket support, connection pooling.
 
-**Database Technology:**
-- PostgreSQL via Neon serverless driver
-- WebSocket support for real-time connections
-- Connection pooling for performance
+**Data Integrity:** Foreign key constraints, UUID primary keys, timestamp tracking, unique constraints.
 
-**Data Integrity:**
-- Foreign key constraints with cascade deletes
-- UUID primary keys for distributed systems
-- Timestamp tracking for audit trails
-- Unique constraints on business identifiers (CPF/CNPJ, email within company)
-- Companies table uses cpfCnpj field accepting both CPF (11+ chars) and CNPJ (14+ chars)
-
-### External Dependencies
+## External Dependencies
 
 **AI Services:**
-- OpenAI API for conversational AI capabilities
-- GPT models for natural language understanding and response generation
-- Product description generation feature
+- OpenAI API (GPT models) for conversational AI, natural language understanding, response generation, product description generation, and AI-powered data extraction for bulk imports.
+- OpenAI Whisper API for voice transcription.
 
 **Database:**
-- Neon PostgreSQL serverless database
-- WebSocket support for connection handling
-- Drizzle ORM for database interactions
+- Neon PostgreSQL serverless database.
+- Drizzle ORM for database interactions.
 
 **Authentication:**
-- jsonwebtoken for JWT token generation/verification
-- bcryptjs for password hashing
-- 7-day token expiration policy
-
-**Development Tools:**
-- Replit-specific plugins:
-  - Runtime error overlay
-  - Cartographer for code mapping
-  - Dev banner for development mode
-- TypeScript for static type checking
-- tsx for TypeScript execution in development
-
-**UI Dependencies:**
-- Radix UI component primitives (30+ components)
-- Tailwind CSS with PostCSS for styling
-- class-variance-authority for component variants
-- date-fns with Portuguese locale for date formatting
-- Lucide React for icon library
+- jsonwebtoken for JWT.
+- bcryptjs for password hashing.
 
 **Media Processing:**
-- Sharp library for server-side image resizing and optimization
-- Multer for handling multipart/form-data file uploads
-- Object storage integration for persistent image storage
+- Sharp library for server-side image resizing and optimization.
+- Multer for multipart/form-data file uploads.
+- Google Cloud Storage for object storage.
+
+**UI Dependencies:**
+- Radix UI component primitives.
+- Tailwind CSS.
+- class-variance-authority.
+- date-fns.
+- Lucide React for icons.
 
 **Key Integration Points:**
-- SESSION_SECRET environment variable required for JWT operations
-- DATABASE_URL required for database connectivity
-- OPENAI_API_KEY for AI functionality
-- All critical variables validated at startup with fail-fast error handling
-
-**Deployment Considerations:**
-- Vite handles frontend bundling to dist/public
-- esbuild bundles backend to dist/index.js
-- Separate development and production build processes
-- Environment-specific configurations for Replit integration
+- Environment variables: `SESSION_SECRET`, `DATABASE_URL`, `OPENAI_API_KEY`.
