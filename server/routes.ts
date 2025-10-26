@@ -946,12 +946,12 @@ ${extractedText.substring(0, 15000)}`;
 
       await storage.takeoverConversation(req.params.id, req.user!.id!, req.user!.name!);
       
-      // Send system message to chat
+      // Send friendly system message to chat
       await storage.createMessage({
         conversationId: req.params.id,
         role: 'assistant',
-        content: `${req.user!.name} entrou na conversa`,
-        metadata: { systemMessage: true },
+        content: `Olá! Meu nome é ${req.user!.name} e agora vou continuar seu atendimento. Como posso ajudá-lo?`,
+        metadata: { systemMessage: true, operatorName: req.user!.name },
       });
 
       res.json({ success: true });
@@ -1305,6 +1305,27 @@ Seu objetivo é:
         {
           type: "function" as const,
           function: {
+            name: "transfer_to_human",
+            description: "Transfere o atendimento para um operador humano. Use esta função quando: 1) O cliente demonstrar frustração ou insatisfação com o atendimento automatizado, 2) O cliente solicitar explicitamente falar com um humano/atendente, 3) Houver uma situação complexa que você não consiga resolver, 4) O cliente não responder por muito tempo após várias tentativas suas.",
+            parameters: {
+              type: "object",
+              properties: {
+                reason: {
+                  type: "string",
+                  description: "Motivo da transferência (ex: 'cliente solicitou', 'frustração', 'sem resposta', 'situação complexa')"
+                },
+                summary: {
+                  type: "string",
+                  description: "Breve resumo do que foi conversado até agora para ajudar o atendente humano"
+                }
+              },
+              required: ["reason", "summary"]
+            }
+          }
+        },
+        {
+          type: "function" as const,
+          function: {
             name: "add_to_cart",
             description: "Adiciona produtos ao carrinho quando o cliente demonstrar interesse. Use quando o cliente mencionar que quer um produto, está interessado, ou pedir para adicionar ao carrinho.",
             parameters: {
@@ -1424,7 +1445,41 @@ Seu objetivo é:
       if (completion.choices[0].message.tool_calls && completion.choices[0].message.tool_calls.length > 0) {
         const toolCall = completion.choices[0].message.tool_calls[0];
         
-        if (toolCall.type === "function" && toolCall.function.name === "add_to_cart") {
+        if (toolCall.type === "function" && toolCall.function.name === "transfer_to_human") {
+          try {
+            const functionArgs = JSON.parse(toolCall.function.arguments);
+            
+            // Mark conversation as needing human attention
+            await storage.updateConversation(conversationId, {
+              needsHumanAttention: true,
+              transferReason: functionArgs.reason,
+            });
+            
+            // Save transfer message
+            const transferMessage = `Entendo sua situação. Estou transferindo você para um de nossos atendentes que poderá ajudá-lo melhor. Por favor, aguarde um momento.`;
+            
+            await storage.createMessage({
+              conversationId,
+              role: 'assistant',
+              content: transferMessage,
+              metadata: {
+                systemMessage: true,
+                transferToHuman: true,
+                reason: functionArgs.reason,
+                summary: functionArgs.summary
+              },
+            });
+            
+            return res.json({
+              role: 'assistant',
+              content: transferMessage,
+              metadata: { transferToHuman: true }
+            });
+          } catch (error) {
+            console.error('Error transferring to human:', error);
+            assistantMessage = "Vou transferir você para um atendente. Por favor, aguarde.";
+          }
+        } else if (toolCall.type === "function" && toolCall.function.name === "add_to_cart") {
           try {
             const functionArgs = JSON.parse(toolCall.function.arguments);
             

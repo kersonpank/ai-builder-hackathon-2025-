@@ -162,6 +162,8 @@ export const conversations = pgTable("conversations", {
   mode: text("mode").notNull().default("ai"), // ai, human, hybrid
   takenOverBy: varchar("taken_over_by").references(() => users.id, { onDelete: 'set null' }), // user who took over
   takenOverAt: timestamp("taken_over_at"), // when takeover happened
+  needsHumanAttention: boolean("needs_human_attention").notNull().default(false), // AI requested human help
+  transferReason: text("transfer_reason"), // why AI transferred to human
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

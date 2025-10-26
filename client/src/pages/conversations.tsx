@@ -44,16 +44,25 @@ function ConversationCard({ conversation, onClick }: { conversation: Conversatio
 
   return (
     <Card 
-      className="hover-elevate transition-all cursor-pointer"
+      className={`hover-elevate transition-all cursor-pointer ${
+        conversation.needsHumanAttention ? 'ring-2 ring-orange-500' : ''
+      }`}
       onClick={onClick}
       data-testid={`card-conversation-${conversation.id}`}
     >
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1 flex-1">
-            <CardTitle className="text-base">
-              {displayName}
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">
+                {displayName}
+              </CardTitle>
+              {conversation.needsHumanAttention && (
+                <Badge variant="destructive" className="text-xs">
+                  Atenção!
+                </Badge>
+              )}
+            </div>
             <CardDescription className="text-xs">
               {format(new Date(conversation.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR })}
             </CardDescription>
@@ -65,6 +74,11 @@ function ConversationCard({ conversation, onClick }: { conversation: Conversatio
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
+        {conversation.needsHumanAttention && conversation.transferReason && (
+          <div className="text-sm font-medium text-orange-600 dark:text-orange-400">
+            Motivo: {conversation.transferReason}
+          </div>
+        )}
         {conversation.customerPhone && (
           <div className="text-sm text-muted-foreground">
             {conversation.customerPhone}
@@ -123,9 +137,16 @@ export default function Conversations() {
     },
   });
 
-  const handleTakeover = () => {
+  const handleTakeover = async () => {
     if (selectedConversation) {
-      takeoverMutation.mutate(selectedConversation.id);
+      await takeoverMutation.mutateAsync(selectedConversation.id);
+      // Clear the needsHumanAttention flag after takeover
+      if (selectedConversation.needsHumanAttention) {
+        await apiRequest("PATCH", `/api/conversations/${selectedConversation.id}`, {
+          needsHumanAttention: false,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      }
     }
   };
 
@@ -232,11 +253,23 @@ export default function Conversations() {
           </DialogHeader>
 
           {selectedConversation && selectedConversation.mode === 'ai' && (
-            <div className="flex gap-2">
+            <div className="space-y-2">
+              {selectedConversation.needsHumanAttention && (
+                <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                    O agente solicitou ajuda de um atendente humano
+                  </p>
+                  {selectedConversation.transferReason && (
+                    <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                      Motivo: {selectedConversation.transferReason}
+                    </p>
+                  )}
+                </div>
+              )}
               <Button
                 onClick={handleTakeover}
                 disabled={takeoverMutation.isPending}
-                variant="outline"
+                variant={selectedConversation.needsHumanAttention ? "default" : "outline"}
                 className="w-full"
                 data-testid="button-takeover"
               >
