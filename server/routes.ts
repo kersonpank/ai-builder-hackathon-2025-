@@ -1483,25 +1483,27 @@ ${conversationHistory.length === 0
    Cliente: "quero 2"
    Você: [CHAMA add_to_cart com 2 unidades] + diz "Adicionei 2 [Café Cuado] no carrinho!"
 
-2️⃣ DADOS PARA ENTREGA (pegue tudo de uma vez!)
+2️⃣ DADOS PARA ENTREGA (pegue nome, telefone e CEP)
 
-→ Assim que produto estiver no carrinho, pergunte TUDO junto:
-→ "Para finalizar seu pedido, preciso de: seu nome, telefone e CEP"
+→ Produto no carrinho? Pergunte: "Nome, telefone e CEP?"
 → Cliente pode dar tudo junto ou separado
-→ Se der CEP, use get_address_by_cep automaticamente
-→ NÃO peça: CPF, email, confirmação, método de pagamento
+→ Recebeu CEP? CHAME get_address_by_cep IMEDIATAMENTE
 
-3️⃣ FINALIZAR PEDIDO (crie AGORA!)
+3️⃣ FINALIZAR PEDIDO AUTOMATICAMENTE
 
-→ Tem Nome + Telefone + Endereço? CHAME create_order IMEDIATAMENTE
-→ NÃO peça confirmação, NÃO pergunte mais nada
-→ Apenas informe: "Pedido confirmado! Código: XXXX. Total: R$ YY,YY"
+⚠️⚠️⚠️ ATENÇÃO: Logo depois que get_address_by_cep retornar, você DEVE:
+1. CHAMAR create_order IMEDIATAMENTE com os dados coletados
+2. NÃO pedir confirmação
+3. NÃO perguntar mais nada
+4. SÓ informar: "Pedido confirmado! Código: XXX"
 
-⚠️ AÇÕES OBRIGATÓRIAS:
-→ Cliente quer produto? → CHAME add_to_cart
-→ Tem os 3 dados? → CHAME create_order
-→ Cliente deu CEP? → CHAME get_address_by_cep
-→ NÃO fique perguntando, NÃO peça confirmação, SEJA RÁPIDO!
+O pedido usa os itens que estão no carrinho (já adicionados com add_to_cart).
+
+⚠️ SEQUÊNCIA OBRIGATÓRIA:
+1. Cliente quer produto? → add_to_cart
+2. Produto adicionado? → Pergunte dados
+3. Cliente deu CEP? → get_address_by_cep  
+4. CEP retornou? → create_order AGORA MESMO (não espere nada!)
 
 ═══════════════════════════════════════════════════════════════════
 📦 CATÁLOGO (${activeProducts.length} produtos disponíveis)
@@ -1767,10 +1769,12 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
                 }
               ];
               
-              // Get final response from the model
+              // Get final response from the model (allow it to continue calling functions)
               const secondCompletion = await openai.chat.completions.create({
                 model: "gpt-4o-mini",
                 messages: functionResultMessages,
+                tools: tools,
+                tool_choice: "auto",
                 max_tokens: 500,
                 temperature: 0.8,
               });
@@ -1898,10 +1902,12 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
               }
             ];
             
-            // Get final response from the model
+            // Get final response from the model (allow it to call more functions like create_order)
             const secondCompletion = await openai.chat.completions.create({
               model: "gpt-4o-mini",
               messages: functionResultMessages,
+              tools: tools,
+              tool_choice: "auto",
               max_tokens: 500,
               temperature: 0.8,
             });
