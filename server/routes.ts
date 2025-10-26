@@ -436,7 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload context documents for agent
-  app.post("/api/agent/documents", requireAuth, upload.array('documents', 10), async (req: AuthRequest, res) => {
+  app.post("/api/agent/documents", requireAuth, documentUpload.array('documents', 10), async (req: AuthRequest, res) => {
     try {
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
