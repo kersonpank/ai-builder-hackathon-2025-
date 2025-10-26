@@ -1008,24 +1008,35 @@ ${activeProducts.slice(0, 20).map(p => `- [${p.name}]: R$ ${(p.price / 100).toFi
 
 REGRA CRÍTICA: Quando mencionar um produto, use o nome EXATO entre colchetes [NOME DO PRODUTO] para que o sistema possa exibir a imagem automaticamente.
 
-PROCESSAMENTO DE PEDIDOS:
-Quando o cliente quiser fazer um pedido, colete as seguintes informações obrigatórias:
-1. Nome completo do cliente
-2. Telefone para contato
-3. Endereço completo: CEP, rua, número, complemento, bairro, cidade, estado
-4. Método de pagamento: PIX, cartão de crédito, cartão de débito ou dinheiro
-5. Produtos e quantidades (confirme cada item)
-6. Calcule e confirme o total
+PROCESSAMENTO DE PEDIDOS - FUNÇÃO AUTOMÁTICA:
+Você tem acesso à função 'create_order' que cria pedidos automaticamente no sistema.
 
-Após coletar TODAS as informações, finalize dizendo:
-"✅ Pedido confirmado! Seu código de confirmação é: [CÓDIGO]"
-(O código será gerado automaticamente pelo sistema quando você criar o pedido)
+Quando o cliente quiser fazer um pedido:
+1. Colete as informações obrigatórias de forma natural na conversa:
+   - Nome completo do cliente
+   - Telefone para contato
+   - Endereço completo (CEP, rua, número, complemento, bairro, cidade, estado)
+   - Método de pagamento (PIX, cartão, boleto ou dinheiro)
+   - Produtos e quantidades desejadas
+
+2. Confirme TODAS as informações com o cliente antes de prosseguir
+
+3. Use a função 'create_order' para criar o pedido automaticamente no sistema
+   - A função vai gerar um código de confirmação único
+   - O pedido será salvo no sistema
+   
+4. Após a função criar o pedido com sucesso, você receberá o código de confirmação
+   - Informe o código ao cliente de forma amigável
+   - Exemplo: "✅ Pedido confirmado! Seu código de confirmação é: XXXX"
+
+IMPORTANTE: Não tente simular a criação de pedidos. Use sempre a função 'create_order' quando tiver todas as informações necessárias.
 
 Seu objetivo é:
 1. Atender o cliente de forma personalizada e natural
 2. Recomendar produtos que atendam suas necessidades  
 3. Ajudar a fechar vendas de forma consultiva
-4. Fornecer informações sobre produtos, preços e disponibilidade`;
+4. Fornecer informações sobre produtos, preços e disponibilidade
+5. Criar pedidos de forma eficaz usando a função disponível`;
 
       // Get conversation history
       const messages = await storage.getMessagesByConversation(conversationId);
@@ -1041,15 +1052,180 @@ Seu objetivo é:
         { role: "user" as const, content },
       ];
 
-      // Call OpenAI
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
+      // Define tools (functions) that the agent can use
+      const tools = [
+        {
+          type: "function" as const,
+          function: {
+            name: "create_order",
+            description: "Cria um novo pedido após coletar todas as informações obrigatórias do cliente. Use esta função apenas quando tiver TODAS as informações necessárias.",
+            parameters: {
+              type: "object",
+              properties: {
+                customerName: {
+                  type: "string",
+                  description: "Nome completo do cliente"
+                },
+                customerPhone: {
+                  type: "string",
+                  description: "Telefone do cliente para contato"
+                },
+                customerEmail: {
+                  type: "string",
+                  description: "Email do cliente (opcional)"
+                },
+                shippingAddress: {
+                  type: "object",
+                  description: "Endereço completo de entrega",
+                  properties: {
+                    street: { type: "string", description: "Rua e número" },
+                    complement: { type: "string", description: "Complemento (opcional)" },
+                    neighborhood: { type: "string", description: "Bairro" },
+                    city: { type: "string", description: "Cidade" },
+                    state: { type: "string", description: "Estado (UF)" },
+                    zip: { type: "string", description: "CEP" }
+                  },
+                  required: ["street", "neighborhood", "city", "state", "zip"]
+                },
+                paymentMethod: {
+                  type: "string",
+                  enum: ["pix", "card", "boleto", "cash"],
+                  description: "Método de pagamento: pix, card (cartão), boleto ou cash (dinheiro)"
+                },
+                items: {
+                  type: "array",
+                  description: "Lista de produtos do pedido",
+                  items: {
+                    type: "object",
+                    properties: {
+                      productId: { type: "string", description: "ID do produto" },
+                      name: { type: "string", description: "Nome do produto" },
+                      price: { type: "number", description: "Preço unitário em centavos" },
+                      quantity: { type: "number", description: "Quantidade" }
+                    },
+                    required: ["productId", "name", "price", "quantity"]
+                  }
+                }
+              },
+              required: ["customerName", "customerPhone", "shippingAddress", "paymentMethod", "items"]
+            }
+          }
+        }
+      ];
+
+      // Call OpenAI with tools
+      let completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
         messages: openaiMessages,
+        tools: tools,
+        tool_choice: "auto",
         max_tokens: 500,
         temperature: 0.8,
       });
 
-      const assistantMessage = completion.choices[0].message.content || "Desculpe, não consegui processar sua mensagem.";
+      let assistantMessage = completion.choices[0].message.content || "";
+      let orderConfirmationCode: string | null = null;
+
+      // Check if the agent wants to call a function
+      if (completion.choices[0].message.tool_calls && completion.choices[0].message.tool_calls.length > 0) {
+        const toolCall = completion.choices[0].message.tool_calls[0];
+        
+        if (toolCall.type === "function" && toolCall.function.name === "create_order") {
+          try {
+            const functionArgs = JSON.parse(toolCall.function.arguments);
+            
+            // SECURITY: Recalculate total from actual product catalog (don't trust AI-provided prices)
+            let total = 0;
+            const validatedItems = [];
+            for (const item of functionArgs.items) {
+              const product = activeProducts.find(p => p.id === item.productId);
+              if (product) {
+                // Use real product price from catalog, not AI-provided price
+                const itemTotal = product.price * item.quantity;
+                total += itemTotal;
+                validatedItems.push({
+                  productId: product.id,
+                  name: product.name,
+                  price: product.price, // Real price from catalog
+                  quantity: item.quantity
+                });
+              }
+            }
+            
+            // Use validated items with real prices
+            functionArgs.items = validatedItems;
+            
+            // Create the order
+            const orderData = {
+              companyId,
+              conversationId,
+              customerName: functionArgs.customerName,
+              customerPhone: functionArgs.customerPhone,
+              customerEmail: functionArgs.customerEmail || null,
+              shippingAddress: functionArgs.shippingAddress,
+              paymentMethod: functionArgs.paymentMethod,
+              items: functionArgs.items,
+              total,
+              status: 'pending' as const,
+            };
+            
+            const order = await storage.createOrder(orderData);
+            orderConfirmationCode = order.confirmationCode || null;
+            
+            // Log order creation
+            await storage.createApiLog({
+              companyId,
+              type: 'order_created',
+              endpoint: '/api/chatweb/:companyId/conversations/:conversationId/messages',
+              method: 'POST',
+              requestData: orderData,
+              responseData: order,
+              metadata: {
+                confirmationCode: order.confirmationCode,
+                total: order.total,
+                customerName: order.customerName,
+                viaFunctionCalling: true,
+              },
+            });
+            
+            // Send function result back to the model
+            const functionResultMessages = [
+              ...openaiMessages,
+              completion.choices[0].message,
+              {
+                role: "tool" as const,
+                tool_call_id: toolCall.id,
+                content: JSON.stringify({
+                  success: true,
+                  confirmationCode: order.confirmationCode,
+                  orderId: order.id,
+                  total: order.total,
+                  message: "Pedido criado com sucesso!"
+                })
+              }
+            ];
+            
+            // Get final response from the model
+            const secondCompletion = await openai.chat.completions.create({
+              model: "gpt-4o-mini",
+              messages: functionResultMessages,
+              max_tokens: 500,
+              temperature: 0.8,
+            });
+            
+            assistantMessage = secondCompletion.choices[0].message.content || 
+              `✅ Pedido confirmado! Seu código de confirmação é: ${order.confirmationCode}`;
+            
+          } catch (error) {
+            console.error('Error creating order via function call:', error);
+            assistantMessage = "Desculpe, ocorreu um erro ao processar seu pedido. Por favor, tente novamente.";
+          }
+        }
+      }
+
+      if (!assistantMessage) {
+        assistantMessage = "Desculpe, não consegui processar sua mensagem.";
+      }
 
       // Log OpenAI prompt for admin monitoring
       await storage.createApiLog({
