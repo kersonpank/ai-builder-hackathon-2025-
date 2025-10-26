@@ -950,7 +950,7 @@ ${extractedText.substring(0, 15000)}`;
       await storage.createMessage({
         conversationId: req.params.id,
         role: 'assistant',
-        content: `Olá! Meu nome é ${req.user!.name} e agora vou continuar seu atendimento. Como posso ajudá-lo?`,
+        content: `Olá! Meu nome é ${req.user!.name} e agora vou continuar seu atendimento.`,
         metadata: { systemMessage: true, operatorName: req.user!.name },
       });
 
