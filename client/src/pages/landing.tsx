@@ -23,12 +23,18 @@ import {
   Globe,
   ChevronDown
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CompaniesCarousel, type CompanyCard } from "@/components/ui/companies-carousel";
 import heroImage from "@assets/generated_images/AI_multichannel_commerce_assistant_da2aede2.png";
 import catalogImage from "@assets/generated_images/Smart_catalog_intelligence_dashboard_960873d8.png";
 import automationImage from "@assets/generated_images/Multichannel_automation_flow_diagram_c2eb8021.png";
 import analyticsImage from "@assets/generated_images/Conversion_analytics_metrics_dashboard_37b7f124.png";
 
 export default function Landing() {
+  const { data: companies = [] } = useQuery<CompanyCard[]>({
+    queryKey: ["/api/public/companies"],
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Navigation */}
@@ -62,6 +68,11 @@ export default function Landing() {
           </div>
         </div>
       </nav>
+
+      {/* Companies Carousel */}
+      {companies.length > 0 && (
+        <CompaniesCarousel companies={companies} className="pt-6" />
+      )}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden py-20 sm:py-32">

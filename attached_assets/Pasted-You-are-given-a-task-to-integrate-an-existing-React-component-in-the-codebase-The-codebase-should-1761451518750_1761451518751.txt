@@ -1,0 +1,227 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure  
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles. 
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder:
+```tsx
+carousel.tsx
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils"; // Your utility for merging Tailwind classes
+
+// Define the type for a single report item
+export interface Report {
+  id: string;
+  quarter: string;
+  period: string;
+  imageSrc: string;
+  isNew?: boolean;
+}
+
+// Define the props for the main component
+interface ShareholderReportsProps {
+  reports: Report[];
+  title?: string;
+  subtitle?: string;
+  className?: string;
+}
+
+export const ShareholderReports = React.forwardRef<
+  HTMLDivElement,
+  ShareholderReportsProps
+>(({ reports, title = "Shareholders' Letter and Results", subtitle = "Powering India's changing lifestyles", className, ...props }, ref) => {
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
+  const [canScrollRight, setCanScrollRight] = React.useState(true);
+
+  // Function to handle scrolling and update arrow visibility
+  const checkScrollability = React.useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1); // -1 for precision
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      checkScrollability();
+      container.addEventListener("scroll", checkScrollability);
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", checkScrollability);
+      }
+    };
+  }, [reports, checkScrollability]);
+
+  // Scroll handler for navigation buttons
+  const scroll = (direction: "left" | "right") => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      const scrollAmount = container.clientWidth * 0.8; // Scroll by 80% of the visible width
+      container.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  return (
+    <section
+      ref={ref}
+      className={cn("w-full max-w-7xl mx-auto py-8", className)}
+      aria-labelledby="reports-heading"
+      {...props}
+    >
+      <div className="flex items-center justify-between px-4 sm:px-6 mb-4">
+        <h2 id="reports-heading" className="text-2xl font-semibold tracking-tight text-foreground">
+          {title}
+        </h2>
+        <div className="hidden sm:flex items-center gap-2">
+          {/* Left Arrow Button */}
+          <button
+            onClick={() => scroll("left")}
+            disabled={!canScrollLeft}
+            aria-label="Scroll left"
+            className={cn(
+              "p-2 rounded-full border border-border bg-card text-card-foreground transition-opacity duration-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-muted"
+            )}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          {/* Right Arrow Button */}
+          <button
+            onClick={() => scroll("right")}
+            disabled={!canScrollRight}
+            aria-label="Scroll right"
+            className={cn(
+              "p-2 rounded-full border border-border bg-card text-card-foreground transition-opacity duration-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-muted"
+            )}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={scrollContainerRef}
+        className="flex overflow-x-auto scroll-smooth snap-x snap-mandatory scrollbar-hide space-x-4 md:space-x-6 px-4 sm:px-6"
+      >
+        {reports.map((report) => (
+          <div
+            key={report.id}
+            className="flex-shrink-0 w-[240px] sm:w-[280px] snap-start"
+          >
+            {/* Report Card */}
+            <div className="group cursor-pointer">
+              <div className="relative overflow-hidden rounded-lg bg-card border border-border mb-3 transition-all duration-300 ease-in-out group-hover:shadow-lg group-hover:-translate-y-1">
+                <img
+                  src={report.imageSrc}
+                  alt={`Report for ${report.quarter}`}
+                  className="w-full h-[320px] sm:h-[380px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent p-4 flex flex-col justify-between text-white">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider">Shareholders' Letter and Results</h3>
+                    <p className="text-xs text-white/80">{report.period}</p>
+                  </div>
+                  <p className="text-sm font-medium">{subtitle}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <h4 className="font-semibold text-foreground text-sm sm:text-base">{report.quarter}</h4>
+                {report.isNew && (
+                  <span className="text-xs font-semibold bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
+                    NEW
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+});
+
+ShareholderReports.displayName = "ShareholderReports";
+
+demo.tsx
+import { ShareholderReports, Report } from "@/components/ui/carousel";
+
+// Sample data for the reports
+const reportsData: Report[] = [
+  {
+    id: "q1fy26",
+    quarter: "Q1FY26",
+    period: "Q4FY26 | JULY 20, 2025",
+    imageSrc: "https://b.zmtcdn.com/investor-relations/363d6f33a40607fd7b70f39081d79eb6_1753090727.jpeg",
+    isNew: true,
+  },
+  {
+    id: "q4fy25",
+    quarter: "Q4FY25",
+    period: "Q4FY25 | MAY 1, 2025",
+    imageSrc: "https://b.zmtcdn.com/investor-relations/1199bb1a7e905267f520ace8be13fdad_1746093395.png",
+  },
+  {
+    id: "q3fy25",
+    quarter: "Q3FY25",
+    period: "Q3FY25 | JANUARY 20, 2025",
+    imageSrc: "https://b.zmtcdn.com/investor-relations/2f012a6bbbb592159108f792460fb5b3_1737366169.jpeg",
+  },
+  {
+    id: "q2fy25",
+    quarter: "Q2FY25",
+    period: "Q2FY25 | OCTOBER 15, 2024",
+    imageSrc: "https://b.zmtcdn.com/investor-relations/fbfcc09072b22ad718da3681e98f711d_1729591272.png",
+  },
+  {
+    id: "q1fy25",
+    quarter: "Q1FY25",
+    period: "Q1FY25 | JULY 18, 2024",
+    imageSrc: "https://b.zmtcdn.com/investor-relations/254790073164218ac21893a8046c0a05_1707385481.png",
+  },
+];
+
+// Demo component to showcase the ShareholderReports
+export default function ShareholderReportsDemo() {
+  return (
+    <div className="w-full bg-background">
+      <ShareholderReports reports={reportsData} />
+    </div>
+  );
+}
+```
+
+Install NPM dependencies:
+```bash
+lucide-react
+```
+
+Implementation Guidelines
+ 1. Analyze the component structure and identify all required dependencies
+ 2. Review the component's argumens and state
+ 3. Identify any required context providers or hooks and install them
+ 4. Questions to Ask
+ - What data/props will be passed to this component?
+ - Are there any specific state management requirements?
+ - Are there any required assets (images, icons, etc.)?
+ - What is the expected responsive behavior?
+ - What is the best place to use this component in the app?
+
+Steps to integrate
+ 0. Copy paste all the code above in the correct directories
+ 1. Install external dependencies
+ 2. Fill image assets with Unsplash stock images you know exist
+ 3. Use lucide-react icons for svgs or logos if component requires them
