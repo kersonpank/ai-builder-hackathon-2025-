@@ -108,7 +108,6 @@ export class ObjectStorageService {
       metadata: {
         contentType,
       },
-      public: true,
     });
     
     return `/public/${filename}`;
