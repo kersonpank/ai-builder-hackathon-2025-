@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { CartProvider } from "@/context/CartContext";
 
 // Pages
 import NotFound from "@/pages/not-found";
@@ -20,6 +21,8 @@ import ProductDrafts from "@/pages/product-drafts";
 import Orders from "@/pages/orders";
 import Conversations from "@/pages/conversations";
 import ChatWeb from "@/pages/chatweb";
+import Catalog from "@/pages/catalog";
+import Checkout from "@/pages/checkout";
 import { useEffect } from "react";
 
 // Protected route wrapper
@@ -82,6 +85,8 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/chat/:companyId" component={ChatWeb} />
+      <Route path="/catalog/:companyId" component={Catalog} />
+      <Route path="/catalog/:companyId/checkout" component={Checkout} />
       
       {/* User Protected Routes */}
       <Route path="/dashboard">
@@ -206,8 +211,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <CartProvider>
+          <Toaster />
+          <Router />
+        </CartProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
