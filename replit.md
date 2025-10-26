@@ -17,6 +17,18 @@ Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for b
 
 ## Recent Changes
 
+**October 26, 2025 - Conversation Intelligence & Specialist Agent Routing**
+- Implemented real-time conversation analysis using OpenAI with JSON mode for reliability
+- Each message triggers AI analysis detecting: intent (browsing/purchase_intent/support/complaint/technical), sentiment (-100 to +100), and complexity (0-100)
+- Analysis results stored in conversations table: currentIntent, sentimentScore, complexityScore, activeAgentType, analysisUpdatedAt
+- Created 4 specialist agent profiles with distinct prompts: Seller (conversion-focused), Consultant (educational), Support (problem-solving), Technical (complex questions)
+- Automatic agent routing: AI selects appropriate specialist based on conversation context
+- Specialist prompts inject into system message, adapting agent behavior dynamically
+- Built analytics endpoint (/api/conversations/analytics) providing aggregated insights: sentiment distribution, intent breakdown, complexity metrics, agent usage
+- Created Analytics dashboard page with visualizations: sentiment bars, complexity distribution, intent counts, agent type distribution
+- System provides context-aware warnings in prompts (e.g., "customer frustrated" when sentiment < -40)
+- Added Analytics menu item to sidebar with BarChart3 icon
+
 **October 26, 2025 - Critical Multi-Tenancy Email Fix**
 - **BREAKING CHANGE:** User emails are now globally unique across all companies (previously allowed duplicate emails across different companies)
 - Added UNIQUE constraint on users.email column to prevent cross-tenant login issues
@@ -86,7 +98,7 @@ Preferred communication style: Simple, everyday language.
 - **Agents:** AI agent configurations (tone, instructions, personality presets, context documents).
 - **Products:** Company catalogs with pricing, metadata, array of up to 3 image URLs, and `status` (draft/published).
 - **Orders:** Customer orders with status and `confirmationCode`.
-- **Conversations:** Chat sessions.
+- **Conversations:** Chat sessions with conversation intelligence fields: `currentIntent`, `sentimentScore`, `complexityScore`, `activeAgentType`, `analysisUpdatedAt` for real-time analysis and specialist routing.
 - **Messages:** Individual chat messages with role and metadata (e.g., product images, attached images).
 - **Channels:** Communication channel configurations.
 
@@ -97,7 +109,8 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 **AI Services:**
-- OpenAI API (GPT models) for conversational AI, natural language understanding, response generation, product description generation, and AI-powered data extraction for bulk imports.
+- OpenAI API (GPT models) for conversational AI, natural language understanding, response generation, product description generation, AI-powered data extraction for bulk imports, and real-time conversation intelligence analysis (intent detection, sentiment analysis, complexity scoring).
+- OpenAI JSON mode (response_format: json_object) ensures reliable structured responses for conversation analysis.
 - OpenAI Whisper API for voice transcription.
 
 **Database:**

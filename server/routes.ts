@@ -109,21 +109,13 @@ async function analyzeConversation(messages: any[]): Promise<{
     // Use last 6 messages for analysis
     const recentMessages = messages.slice(-6).map(m => `${m.role}: ${m.content}`).join('\n');
     
-    const analysisPrompt = `Analise esta conversa e retorne um JSON com os seguintes campos:
+    const analysisPrompt = `Analise esta conversa e identifique a intenção, sentimento e complexidade.
 
 Conversa:
 ${recentMessages}
 
-Retorne APENAS um JSON válido (sem markdown, sem explicações) no formato:
-{
-  "intent": "browsing|purchase_intent|support|complaint|technical_question",
-  "sentiment": <número de -100 a +100>,
-  "complexity": <número de 0 a 100>,
-  "suggestedAgent": "seller|consultant|support|technical"
-}
-
 Critérios:
-- intent: intenção principal do cliente neste momento
+- intent: intenção principal do cliente neste momento (browsing, purchase_intent, support, complaint, technical_question)
 - sentiment: -100 (muito negativo/frustrado) a +100 (muito positivo/satisfeito)
 - complexity: 0 (simples) a 100 (muito complexo/confuso)
 - suggestedAgent: 
@@ -134,12 +126,30 @@ Critérios:
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: analysisPrompt }],
+      messages: [
+        { 
+          role: "system", 
+          content: "You are a conversation analyzer. Respond ONLY with valid JSON matching the schema." 
+        },
+        { 
+          role: "user", 
+          content: analysisPrompt 
+        }
+      ],
+      response_format: { type: "json_object" },
       temperature: 0.3,
       max_tokens: 200,
     });
 
     const result = JSON.parse(completion.choices[0].message.content || '{}');
+    
+    // Validate and log the result
+    if (!result.intent || !result.suggestedAgent) {
+      console.error('Invalid analysis result:', result);
+      throw new Error('Invalid analysis response from OpenAI');
+    }
+    
+    console.log('✅ Analysis successful:', result);
     
     return {
       intent: result.intent || 'browsing',
