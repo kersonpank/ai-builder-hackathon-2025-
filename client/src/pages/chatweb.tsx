@@ -82,21 +82,38 @@ export default function ChatWeb() {
       if (!conversationId) throw new Error("No conversation");
       
       const formData = new FormData();
-      formData.append("content", content);
-      if (image) formData.append("image", image);
-      if (audio) formData.append("audio", audio, "audio.webm");
+      formData.append("content", content || "");
+      if (image) {
+        formData.append("image", image);
+        console.log("Sending image:", image.name, image.size);
+      }
+      if (audio) {
+        formData.append("audio", audio, "audio.webm");
+        console.log("Sending audio:", audio.size);
+      }
       
       const response = await fetch(`/api/chatweb/${companyId}/conversations/${conversationId}/messages`, {
         method: "POST",
         body: formData,
       });
-      if (!response.ok) throw new Error("Erro ao enviar mensagem");
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Send message error:", errorText);
+        throw new Error("Erro ao enviar mensagem");
+      }
       return response.json();
     },
     onSuccess: (assistantMessage) => {
       setMessages(prev => [...prev, assistantMessage]);
-      setSelectedImage(null);
-      setAudioBlob(null);
+    },
+    onError: (error) => {
+      console.error("Mutation error:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "Erro ao enviar mensagem",
+        description: "Tente novamente"
+      });
     },
   });
 
@@ -187,20 +204,31 @@ export default function ChatWeb() {
   const handleSend = async () => {
     if ((!input.trim() && !selectedImage && !audioBlob) || !conversationId) return;
 
+    // Determine display text for user message
+    let displayText = input;
+    if (!displayText && selectedImage) displayText = "📷 Imagem enviada";
+    if (!displayText && audioBlob) displayText = "🎤 Áudio enviado";
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input || (selectedImage ? "📷 Imagem enviada" : "🎤 Áudio enviado"),
+      content: displayText,
       createdAt: new Date().toISOString(),
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
+    const currentImage = selectedImage;
+    const currentAudio = audioBlob;
+    
     setInput("");
+    setSelectedImage(null);
+    setAudioBlob(null);
     
     sendMessageMutation.mutate({ 
-      content: input, 
-      image: selectedImage || undefined,
-      audio: audioBlob || undefined
+      content: currentInput, 
+      image: currentImage || undefined,
+      audio: currentAudio || undefined
     });
   };
 

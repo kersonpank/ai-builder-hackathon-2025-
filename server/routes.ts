@@ -996,6 +996,8 @@ ${extractedText.substring(0, 15000)}`;
       const audioFile = files?.audio?.[0];
       let content = req.body.content || '';
 
+      console.log('Message received - content:', content, 'has image:', !!imageFile, 'has audio:', !!audioFile);
+
       // Verify conversation belongs to this company (security check)
       const conversation = await storage.getConversation(conversationId);
       if (!conversation || conversation.companyId !== companyId) {
@@ -1005,6 +1007,7 @@ ${extractedText.substring(0, 15000)}`;
       // Process image if uploaded
       let imageContext = '';
       if (imageFile) {
+        console.log('Processing image upload:', imageFile.originalname, imageFile.size, 'bytes');
         const { ObjectStorageService } = await import('./objectStorage');
         const objectStorage = new ObjectStorageService();
         const imageUrl = await objectStorage.uploadToPublicStorage(
@@ -1012,6 +1015,7 @@ ${extractedText.substring(0, 15000)}`;
           `chatweb/images/${Date.now()}-${imageFile.originalname}`,
           imageFile.mimetype
         );
+        console.log('Image uploaded to:', imageUrl);
         imageContext = `\n\n[O cliente enviou uma imagem: ${imageUrl}]\nPor favor, analise a imagem e responda de acordo.`;
       }
 
@@ -1019,11 +1023,13 @@ ${extractedText.substring(0, 15000)}`;
       let audioTranscription = '';
       if (audioFile) {
         try {
+          console.log('Processing audio upload:', audioFile.size, 'bytes');
           const fs = await import('fs');
           const path = await import('path');
           const tmpPath = path.join('/tmp', `audio-${Date.now()}.webm`);
           fs.writeFileSync(tmpPath, audioFile.buffer);
           
+          console.log('Transcribing audio with Whisper...');
           const transcription = await openai.audio.transcriptions.create({
             file: fs.createReadStream(tmpPath),
             model: "whisper-1",
@@ -1031,6 +1037,7 @@ ${extractedText.substring(0, 15000)}`;
           });
           
           audioTranscription = transcription.text;
+          console.log('Audio transcription:', audioTranscription);
           fs.unlinkSync(tmpPath); // Clean up temp file
           
           if (audioTranscription) {
@@ -1043,6 +1050,14 @@ ${extractedText.substring(0, 15000)}`;
 
       // Combine all content
       const finalContent = content + imageContext;
+      
+      // Validate we have some content
+      if (!finalContent.trim()) {
+        console.error('No content to process - content:', content, 'imageContext:', imageContext);
+        return res.status(400).json({ error: "Mensagem vazia" });
+      }
+      
+      console.log('Final content to be saved:', finalContent.substring(0, 200));
 
       // Save user message
       await storage.createMessage({
