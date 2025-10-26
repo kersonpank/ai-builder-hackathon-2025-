@@ -1446,18 +1446,25 @@ Você tem acesso à função 'get_address_by_cep' que busca endereços pelo CEP.
 Quando o cliente precisar informar endereço:
 1. Pergunte o CEP (8 dígitos)
 2. Use a função 'get_address_by_cep' para buscar automaticamente
-3. Confirme os dados com o cliente (rua, bairro, cidade, estado)
-4. Peça apenas número e complemento (que não vêm no CEP)
+3. Se encontrar: confirme os dados com o cliente (rua, bairro, cidade, estado) e peça número/complemento
+4. Se NÃO encontrar ou houver erro: peça o endereço completo manualmente
 
-Exemplo de uso:
+Exemplo de uso SUCESSO:
 Cliente: "Meu CEP é 01001-000"
 Você: [usa a função get_address_by_cep com cep "01001000"]
 Sistema retorna: Praça da Sé, Sé, São Paulo, SP
 Você: "Encontrei: Praça da Sé, bairro Sé, São Paulo-SP. Qual o número e complemento?"
 
+Exemplo de uso FALHA (CEP não encontrado ou sistema indisponível):
+Cliente: "Meu CEP é 99999-999"
+Você: [usa a função get_address_by_cep]
+Sistema retorna: erro
+Você: "Não consegui localizar esse CEP. Sem problemas! Por favor, me informe: Rua, Número, Bairro, Cidade e Estado."
+
 IMPORTANTE:
 - CEP deve ter 8 dígitos (pode ser com ou sem hífen, a função aceita ambos)
-- Se o CEP não for encontrado, peça para o cliente verificar e informar novamente
+- Se houver QUALQUER erro (CEP inválido, não encontrado, ou sistema fora do ar), SEMPRE ofereça o caminho manual
+- Seja natural e não demonstre frustração se o sistema falhar - apenas continue coletando o endereço manualmente
 - Sempre confirme os dados antes de prosseguir
 
 PROCESSAMENTO DE PEDIDOS - FUNÇÃO AUTOMÁTICA:
@@ -1831,31 +1838,88 @@ Seu objetivo é:
             const functionArgs = JSON.parse(toolCall.function.arguments);
             const cep = functionArgs.cep.replace(/\D/g, ''); // Remove non-digits
             
+            // Validate CEP format (must be 8 digits)
+            if (cep.length !== 8 || !/^\d{8}$/.test(cep)) {
+              const functionResult = {
+                success: false,
+                error: "CEP inválido. O CEP deve conter exatamente 8 dígitos."
+              };
+              
+              const functionResultMessages = [
+                ...openaiMessages,
+                completion.choices[0].message,
+                {
+                  role: "tool" as const,
+                  tool_call_id: toolCall.id,
+                  content: JSON.stringify(functionResult)
+                }
+              ];
+              
+              const secondCompletion = await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: functionResultMessages,
+                max_tokens: 500,
+                temperature: 0.8,
+              });
+              
+              assistantMessage = secondCompletion.choices[0].message.content || 
+                "CEP inválido. Por favor, informe um CEP válido com 8 dígitos.";
+              
+              const savedMessage = await storage.createMessage({
+                conversationId,
+                role: 'assistant',
+                content: assistantMessage,
+                metadata: { functionCalled: 'get_address_by_cep', cepData: functionResult },
+              });
+              
+              return res.json(savedMessage);
+            }
+            
             console.log('Fetching address for CEP:', cep);
             
-            // Call ViaCEP API
-            const viacepResponse = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-            const viacepData = await viacepResponse.json();
-            
             let functionResult;
-            if (viacepData.erro) {
-              // CEP not found
+            try {
+              // Call ViaCEP API with timeout
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+              
+              const viacepResponse = await fetch(`https://viacep.com.br/ws/${cep}/json/`, {
+                signal: controller.signal
+              });
+              clearTimeout(timeoutId);
+              
+              if (!viacepResponse.ok) {
+                throw new Error(`ViaCEP returned status ${viacepResponse.status}`);
+              }
+              
+              const viacepData = await viacepResponse.json();
+              
+              if (viacepData.erro) {
+                // CEP not found
+                functionResult = {
+                  success: false,
+                  error: "CEP não encontrado. Verifique se o CEP está correto."
+                };
+              } else {
+                // CEP found successfully
+                functionResult = {
+                  success: true,
+                  address: {
+                    cep: viacepData.cep,
+                    street: viacepData.logradouro,
+                    complement: viacepData.complemento,
+                    neighborhood: viacepData.bairro,
+                    city: viacepData.localidade,
+                    state: viacepData.uf
+                  }
+                };
+              }
+            } catch (fetchError: any) {
+              console.error('ViaCEP API error:', fetchError);
+              // Network error, timeout, or API unavailable
               functionResult = {
                 success: false,
-                error: "CEP não encontrado. Verifique se o CEP está correto."
-              };
-            } else {
-              // CEP found successfully
-              functionResult = {
-                success: true,
-                address: {
-                  cep: viacepData.cep,
-                  street: viacepData.logradouro,
-                  complement: viacepData.complemento,
-                  neighborhood: viacepData.bairro,
-                  city: viacepData.localidade,
-                  state: viacepData.uf
-                }
+                error: "Não foi possível buscar o CEP no momento. Por favor, informe o endereço completo manualmente."
               };
             }
             
@@ -1881,7 +1945,7 @@ Seu objetivo é:
             });
             
             assistantMessage = secondCompletion.choices[0].message.content || 
-              (functionResult.success 
+              (functionResult.success && functionResult.address
                 ? `Encontrei o endereço: ${functionResult.address.street}, ${functionResult.address.neighborhood}, ${functionResult.address.city}-${functionResult.address.state}`
                 : "Não consegui encontrar esse CEP. Por favor, verifique se está correto.");
             
