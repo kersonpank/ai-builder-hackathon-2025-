@@ -1084,18 +1084,22 @@ ${extractedText.substring(0, 15000)}`;
       }
 
       // Process image if uploaded
-      let imageContext = '';
+      let imageUrl: string | null = null;
       if (imageFile) {
         console.log('Processing image upload:', imageFile.originalname, imageFile.size, 'bytes');
         const { ObjectStorageService } = await import('./objectStorage');
         const objectStorage = new ObjectStorageService();
-        const imageUrl = await objectStorage.uploadToPublicStorage(
+        imageUrl = await objectStorage.uploadToPublicStorage(
           imageFile.buffer, 
           `chatweb/images/${Date.now()}-${imageFile.originalname}`,
           imageFile.mimetype
         );
         console.log('Image uploaded to:', imageUrl);
-        imageContext = `\n\n[O cliente enviou uma imagem: ${imageUrl}]\nPor favor, analise a imagem e responda de acordo.`;
+        
+        // Add image context to text if no other content
+        if (!content.trim()) {
+          content = 'O cliente enviou uma imagem. Por favor, analise e responda.';
+        }
       }
 
       // Process audio if uploaded - transcribe with Whisper
@@ -1127,23 +1131,20 @@ ${extractedText.substring(0, 15000)}`;
         }
       }
 
-      // Combine all content
-      const finalContent = content + imageContext;
-      
       // Validate we have some content
-      if (!finalContent.trim()) {
-        console.error('No content to process - content:', content, 'imageContext:', imageContext);
+      if (!content.trim() && !imageUrl) {
+        console.error('No content to process - content:', content, 'imageUrl:', imageUrl);
         return res.status(400).json({ error: "Mensagem vazia" });
       }
       
-      console.log('Final content to be saved:', finalContent.substring(0, 200));
+      console.log('Final content to be saved:', content.substring(0, 200));
 
-      // Save user message
+      // Save user message with image in metadata
       const userMessage = await storage.createMessage({
         conversationId,
         role: 'user',
-        content: finalContent,
-        metadata: null,
+        content: content,
+        metadata: imageUrl ? { imageUrl } : null,
       });
 
       // Check if conversation is in human mode - don't call AI if human took over
@@ -1288,16 +1289,54 @@ Seu objetivo é:
 
       // Get conversation history
       const messages = await storage.getMessagesByConversation(conversationId);
-      const conversationHistory = messages.slice(-10).map(m => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      }));
+      const conversationHistory = messages.slice(-10).map(m => {
+        // Check if message has image in metadata
+        const metadata = m.metadata as { imageUrl?: string } | null;
+        if (metadata?.imageUrl) {
+          // Build full URL for image
+          const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+          const fullImageUrl = metadata.imageUrl.startsWith('http') 
+            ? metadata.imageUrl 
+            : `https://${domain}${metadata.imageUrl}`;
+          
+          return {
+            role: m.role as 'user' | 'assistant',
+            content: [
+              { type: "text" as const, text: m.content },
+              { type: "image_url" as const, image_url: { url: fullImageUrl } }
+            ]
+          };
+        }
+        return {
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        };
+      });
+
+      // Prepare current message with image if present
+      let currentMessage: any;
+      if (imageUrl) {
+        const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+        const fullImageUrl = imageUrl.startsWith('http') 
+          ? imageUrl 
+          : `https://${domain}${imageUrl}`;
+        
+        currentMessage = {
+          role: "user" as const,
+          content: [
+            { type: "text" as const, text: content },
+            { type: "image_url" as const, image_url: { url: fullImageUrl } }
+          ]
+        };
+      } else {
+        currentMessage = { role: "user" as const, content };
+      }
 
       // Prepare OpenAI messages
       const openaiMessages = [
         { role: "system" as const, content: systemPrompt },
         ...conversationHistory,
-        { role: "user" as const, content },
+        currentMessage,
       ];
 
       // Define tools (functions) that the agent can use

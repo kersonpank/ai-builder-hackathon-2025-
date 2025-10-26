@@ -17,6 +17,7 @@ interface Message {
   createdAt: string;
   operatorName?: string | null;
   metadata?: {
+    imageUrl?: string;  // User-uploaded image
     productImages?: Array<{
       name: string;
       imageUrl: string | null;
@@ -405,6 +406,17 @@ export default function ChatWeb() {
                       src={message.metadata.productImage} 
                       alt={('productName' in message.metadata && typeof (message.metadata as any).productName === 'string' ? (message.metadata as any).productName : "Produto")}
                       className="w-full aspect-square object-cover"
+                    />
+                  </div>
+                )}
+
+                {/* User-uploaded Image */}
+                {message.role === "user" && message.metadata?.imageUrl && (
+                  <div className="rounded-lg overflow-hidden border bg-background mb-2">
+                    <img 
+                      src={message.metadata.imageUrl} 
+                      alt="Imagem enviada"
+                      className="w-full object-cover max-h-64"
                     />
                   </div>
                 )}
