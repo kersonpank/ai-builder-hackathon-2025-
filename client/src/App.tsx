@@ -26,6 +26,7 @@ import ConversationsMonitor from "@/pages/conversations-monitor";
 import ChatWeb from "@/pages/chatweb";
 import Catalog from "@/pages/catalog";
 import Checkout from "@/pages/checkout";
+import Settings from "@/pages/settings";
 import { useEffect } from "react";
 
 // Protected route wrapper
@@ -183,6 +184,18 @@ function Router() {
             component={() => (
               <AuthenticatedLayout>
                 <ConversationsMonitor />
+              </AuthenticatedLayout>
+            )}
+          />
+        )}
+      </Route>
+      
+      <Route path="/settings">
+        {() => (
+          <ProtectedRoute
+            component={() => (
+              <AuthenticatedLayout>
+                <Settings />
               </AuthenticatedLayout>
             )}
           />

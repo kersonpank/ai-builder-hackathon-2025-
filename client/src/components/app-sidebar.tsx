@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 
 const userMenuItems = [
@@ -92,8 +92,15 @@ export function AppSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
         </SidebarMenu>
         {!isAdmin && company && (
           <div className="px-3 py-2 border-t">
-            <div className="flex items-center gap-3">
+            <div 
+              className="flex items-center gap-3 cursor-pointer hover-elevate rounded-md p-2 transition-all"
+              onClick={() => setLocation("/settings")}
+              data-testid="button-company-settings"
+            >
               <Avatar className="h-8 w-8">
+                {company.logoUrl && (
+                  <AvatarImage src={company.logoUrl} alt={company.name} />
+                )}
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                   {company.name.charAt(0)}
                 </AvatarFallback>
