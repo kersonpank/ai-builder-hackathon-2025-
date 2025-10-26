@@ -17,6 +17,19 @@ Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for b
 
 ## Recent Changes
 
+**October 26, 2025 - Ultra-Direct Agent Prompts for Speed**
+- **Completely rewrote agent system prompts** for maximum speed and directness
+- **Function descriptions made ultra-direct**: "CHAME IMEDIATAMENTE", "NÃO pergunte confirmação", "ADICIONE DIRETO"
+- **3-step visual flow**: Cliente quer produto → add_to_cart → Tem dados → create_order
+- **Removed all verbosity**: Eliminated long explanations, kept only action-oriented instructions
+- **Catalog simplified**: Shows only [Product Name] - Price, no descriptions in prompt
+- **Critical rules emphasized**: "SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS"
+- **Examples made practical**: Real conversation flows showing exact agent behavior expected
+- add_to_cart: "CHAME IMEDIATAMENTE quando cliente disser que quer um produto"
+- get_address_by_cep: "CHAME AUTOMATICAMENTE quando cliente informar CEP"
+- create_order: "CHAME AGORA quando tiver os 3 dados: Nome + Telefone + Endereço"
+- **Goal made explicit**: "Feche a venda RÁPIDO em 3 etapas: 1. Mostre produto → 2. add_to_cart → 3. create_order"
+
 **October 26, 2025 - Radical Conversation Flow Simplification**
 - **BREAKING CHANGE:** Completely simplified conversation flow from 10 complex stages to 3 simple steps
 - New 3-step flow: PRODUCT (identify + add to cart) → BASIC DATA (name, phone, address) → CREATE ORDER
