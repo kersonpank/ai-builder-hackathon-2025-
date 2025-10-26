@@ -29,8 +29,8 @@ const translations = {
     loading: "ENTRANDO...",
     signInButton: "ENTRAR",
     signUpButton: "CADASTRAR",
-    socialLogin: "Em breve",
-    socialSignup: "Em breve",
+    socialLogin: "Em breve o login com redes sociais",
+    socialSignup: "Em breve o login com redes sociais",
     errors: {
       invalidEmail: "Email inválido",
       passwordMin: "Senha deve ter no mínimo 6 caracteres",
@@ -53,8 +53,8 @@ const translations = {
     loading: "LOADING...",
     signInButton: "SIGN IN",
     signUpButton: "SIGN UP",
-    socialLogin: "Coming soon",
-    socialSignup: "Coming soon",
+    socialLogin: "Social login coming soon",
+    socialSignup: "Social login coming soon",
     errors: {
       invalidEmail: "Invalid email",
       passwordMin: "Password must be at least 6 characters",
@@ -77,8 +77,8 @@ const translations = {
     loading: "CARGANDO...",
     signInButton: "INICIAR SESIÓN",
     signUpButton: "REGISTRARSE",
-    socialLogin: "Próximamente",
-    socialSignup: "Próximamente",
+    socialLogin: "Inicio de sesión social próximamente",
+    socialSignup: "Inicio de sesión social próximamente",
     errors: {
       invalidEmail: "Correo electrónico inválido",
       passwordMin: "La contraseña debe tener al menos 6 caracteres",
