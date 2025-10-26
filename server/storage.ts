@@ -24,6 +24,7 @@ export interface IStorage {
   
   // Companies
   getAllCompanies(): Promise<Company[]>;
+  getActiveCompanies(): Promise<Company[]>;
   getCompany(id: string): Promise<Company | undefined>;
   getCompanyByCpfCnpj(cpfCnpj: string): Promise<Company | undefined>;
   createCompany(data: InsertCompany): Promise<Company>;
@@ -119,6 +120,10 @@ export class DbStorage implements IStorage {
   // Companies
   async getAllCompanies(): Promise<Company[]> {
     return db.select().from(companies).orderBy(desc(companies.createdAt));
+  }
+
+  async getActiveCompanies(): Promise<Company[]> {
+    return db.select().from(companies).where(eq(companies.status, 'active')).orderBy(desc(companies.createdAt));
   }
 
   async getCompany(id: string): Promise<Company | undefined> {

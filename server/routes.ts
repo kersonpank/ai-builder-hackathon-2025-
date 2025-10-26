@@ -83,6 +83,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  // ============ PUBLIC ROUTES ============
+  
+  // Get all active companies (for landing page)
+  app.get("/api/public/companies", async (req, res) => {
+    try {
+      const companies = await storage.getActiveCompanies();
+      // Return only public information
+      const publicCompanies = companies.map(company => ({
+        id: company.id,
+        name: company.name,
+        logoUrl: company.logoUrl,
+        slug: company.id, // Using ID as slug for now
+      }));
+      res.json(publicCompanies);
+    } catch (error) {
+      console.error("Error fetching public companies:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
   
   // ============ AUTH ROUTES ============
   
