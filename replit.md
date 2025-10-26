@@ -17,6 +17,15 @@ Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for b
 
 ## Recent Changes
 
+**October 26, 2025 - Automatic Address Lookup via CEP**
+- Integrated ViaCEP API for automatic Brazilian address lookup by postal code (CEP)
+- AI agent can now automatically fetch addresses during checkout: asks for CEP → calls API → confirms data → requests number/complement
+- Robust error handling: 8-digit CEP validation, 5-second timeout, structured failure responses
+- Graceful fallback: agent requests manual address input when CEP lookup fails (invalid CEP, API unavailable, network error)
+- Enhanced agent prompt with success/failure examples and clear fallback strategy
+- All error paths return structured { success: false, error } preventing conversation flow interruption
+- ViaCEP integration requires no authentication and is free for high-volume usage
+
 **October 26, 2025 - Conversation Intelligence & Specialist Agent Routing**
 - Implemented real-time conversation analysis using OpenAI with JSON mode for reliability
 - Each message triggers AI analysis detecting: intent (browsing/purchase_intent/support/complaint/technical), sentiment (-100 to +100), and complexity (0-100)
