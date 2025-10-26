@@ -1586,7 +1586,7 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
                   items: {
                     type: "object",
                     properties: {
-                      productId: { type: "string", description: "ID do produto" },
+                      productId: { type: "string", description: "Nome do produto (use o nome exato do catálogo)" },
                       quantity: { type: "number", description: "Quantidade desejada", default: 1 }
                     },
                     required: ["productId", "quantity"]
@@ -1645,16 +1645,16 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
                 },
                 items: {
                   type: "array",
-                  description: "Lista de produtos do pedido",
+                  description: "Lista de produtos do pedido (use os nomes exatos do catálogo)",
                   items: {
                     type: "object",
                     properties: {
-                      productId: { type: "string", description: "ID do produto" },
+                      productId: { type: "string", description: "Nome do produto (use o nome exato do catálogo)" },
                       name: { type: "string", description: "Nome do produto" },
                       price: { type: "number", description: "Preço unitário em centavos" },
                       quantity: { type: "number", description: "Quantidade" }
                     },
-                    required: ["productId", "name", "price", "quantity"]
+                    required: ["productId", "quantity"]
                   }
                 }
               },
@@ -1731,8 +1731,12 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
             // Build cart items with real product data
             const cartItems = [];
             for (const item of functionArgs.items) {
-              const product = activeProducts.find(p => p.id === item.productId);
-              console.log('🔍 Looking for product ID:', item.productId, 'Found:', !!product);
+              // Try to find by ID first, then by name (case insensitive)
+              const product = activeProducts.find(p => 
+                p.id === item.productId || 
+                p.name.toLowerCase() === item.productId.toLowerCase()
+              );
+              console.log('🔍 Looking for product:', item.productId, 'Found:', product?.name || 'NOT FOUND');
               if (product) {
                 cartItems.push({
                   id: product.id,
@@ -1931,7 +1935,11 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
             let total = 0;
             const validatedItems = [];
             for (const item of functionArgs.items) {
-              const product = activeProducts.find(p => p.id === item.productId);
+              // Try to find by ID first, then by name (case insensitive)
+              const product = activeProducts.find(p => 
+                p.id === item.productId || 
+                p.name.toLowerCase() === item.productId.toLowerCase()
+              );
               if (product) {
                 // Use real product price from catalog, not AI-provided price
                 const itemTotal = product.price * item.quantity;
