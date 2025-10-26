@@ -216,55 +216,30 @@ export default function AuthSwitch() {
               </motion.div>
             ) : (
               <motion.div
-                key="signup-form"
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4 }}
-                className="w-full max-w-md space-y-6"
+                key="signup-cta-left"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6 max-w-md text-center"
               >
-                <h1 className="text-4xl font-bold text-center">{t.signUp}</h1>
-                <div className="space-y-4">
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
-                    <Input
-                      type="text"
-                      placeholder={t.fullName}
-                      className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
-                      data-testid="input-username"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
-                    <Input
-                      type="email"
-                      placeholder={t.email}
-                      className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
-                      data-testid="input-signup-email"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500" />
-                    <Input
-                      type="password"
-                      placeholder={t.password}
-                      className="pl-12 h-14 bg-muted border-0 rounded-full text-base"
-                      data-testid="input-signup-password"
-                    />
-                  </div>
-                  <Button
-                    onClick={handleSignUpClick}
-                    size="lg"
-                    className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full text-base font-semibold"
-                    data-testid="button-signup"
-                  >
-                    {t.signUpButton}
-                  </Button>
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Sparkles className="w-10 h-10" />
+                  <h1 className="text-5xl font-bold">{t.appName}</h1>
                 </div>
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    {t.socialSignup}
-                  </p>
-                </div>
+                <h2 className="text-3xl font-bold">{t.newHere}</h2>
+                <p className="text-lg">
+                  {t.newHereDesc}
+                </p>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleSignUpClick}
+                  className="bg-indigo-600 border-2 border-indigo-600 text-white hover:bg-indigo-700 hover:border-indigo-700 transition-all duration-300 px-12 rounded-full"
+                  data-testid="button-signup"
+                >
+                  {t.signUpButton}
+                </Button>
               </motion.div>
             )}
           </motion.div>
@@ -523,50 +498,20 @@ export default function AuthSwitch() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3 }}
-                className="space-y-6"
+                className="space-y-6 text-center"
               >
-                <div className="space-y-4">
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
-                    <Input
-                      type="text"
-                      placeholder={t.fullName}
-                      className="pl-12 h-12 bg-muted border-0 rounded-full"
-                      data-testid="input-username-mobile"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-500" />
-                    <Input
-                      type="email"
-                      placeholder={t.email}
-                      className="pl-12 h-12 bg-muted border-0 rounded-full"
-                      data-testid="input-signup-email-mobile"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-orange-500" />
-                    <Input
-                      type="password"
-                      placeholder={t.password}
-                      className="pl-12 h-12 bg-muted border-0 rounded-full"
-                      data-testid="input-signup-password-mobile"
-                    />
-                  </div>
-                  <Button
-                    onClick={handleSignUpClick}
-                    size="lg"
-                    className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-semibold"
-                    data-testid="button-signup-mobile"
-                  >
-                    {t.signUpButton}
-                  </Button>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-muted-foreground">
-                    {t.socialSignup}
-                  </p>
-                </div>
+                <h2 className="text-2xl font-bold">{t.newHere}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {t.newHereDesc}
+                </p>
+                <Button
+                  onClick={handleSignUpClick}
+                  size="lg"
+                  className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-semibold"
+                  data-testid="button-signup-mobile"
+                >
+                  {t.signUpButton}
+                </Button>
               </motion.div>
             )}
           </div>
