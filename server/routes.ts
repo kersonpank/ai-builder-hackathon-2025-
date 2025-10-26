@@ -1482,10 +1482,11 @@ Seu objetivo é:
 3. Finalizar pedidos rapidamente (só nome, telefone e endereço)
 4. Criar pedidos imediatamente quando tiver os dados`;
 
-      // Get conversation history (excluding the user message we just saved to avoid duplication)
+      // Get conversation history (BEFORE saving the current user message to avoid duplication)
       const messages = await storage.getMessagesByConversation(conversationId);
-      // Get all messages EXCEPT the last one (which is the user message we just saved)
-      const conversationHistory = messages.slice(0, -1).slice(-10).map(m => {
+      // Filter out the user message we just saved (last message) to avoid sending it twice
+      const historyMessages = messages.filter(m => m.id !== userMessage.id);
+      const conversationHistory = historyMessages.slice(-10).map(m => {
         // Check if message has image in metadata
         const metadata = m.metadata as { imageUrl?: string } | null;
         if (metadata?.imageUrl) {
@@ -1527,6 +1528,13 @@ Seu objetivo é:
       } else {
         currentMessage = { role: "user" as const, content };
       }
+
+      console.log('📊 Conversation context:', {
+        totalMessages: messages.length,
+        historyMessages: historyMessages.length,
+        historyUsed: conversationHistory.length,
+        currentContent: content.substring(0, 100)
+      });
 
       // Prepare OpenAI messages
       const openaiMessages = [
