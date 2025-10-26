@@ -1663,6 +1663,7 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
       ];
 
       // Call OpenAI with tools
+      console.log('🤖 Calling OpenAI with', openaiMessages.length, 'messages');
       let completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: openaiMessages,
@@ -1670,6 +1671,12 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
         tool_choice: "auto",
         max_tokens: 500,
         temperature: 0.8,
+      });
+
+      console.log('✅ OpenAI responded:', {
+        hasContent: !!completion.choices[0].message.content,
+        hasFunctionCall: !!completion.choices[0].message.tool_calls,
+        functionName: completion.choices[0].message.tool_calls?.[0]?.function?.name
       });
 
       let assistantMessage = completion.choices[0].message.content?.trim() || "";
@@ -2072,7 +2079,10 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
         assistantMessage = conversationHistory.length === 0 
           ? "Olá! Como posso ajudar você hoje?" 
           : "Desculpe, pode reformular? Não entendi bem.";
+        console.log('⚠️ Using fallback message:', assistantMessage);
       }
+
+      console.log('💬 Final assistant message:', assistantMessage.substring(0, 100));
 
       // Log OpenAI prompt for admin monitoring
       await storage.createApiLog({
