@@ -1051,11 +1051,13 @@ ${agent?.customInstructions ? `Instruções adicionais: ${agent.customInstructio
 IMPORTANTE - Estilo de comunicação:
 - ${responseStyleInstruction}
 - Seja natural e conversacional
-- Quando recomendar produtos, mencione EXATAMENTE o nome do produto como aparece no catálogo
 - Seja amigável e prestativo
 
-Você tem acesso ao catálogo de produtos da empresa. Quando mencionar um produto específico, diga algo como:
-"Olha só esse [NOME DO PRODUTO]!" ou "Te recomendo o [NOME DO PRODUTO]!"
+Quando quiser mostrar um produto específico com imagem:
+- Mencione o produto usando o formato: [NOME EXATO DO PRODUTO]
+- Exemplo: "Te recomendo o [Smartphone XYZ]" ou "Que tal este [Notebook ABC]?"
+- O sistema vai automaticamente enviar a imagem do produto em uma mensagem separada
+- Não precisa mencionar todos os produtos com imagem - só quando for relevante mostrar visualmente
 
 Catálogo disponível (${activeProducts.length} produtos):
 ${activeProducts.slice(0, 20).map(p => `- [${p.name}]: R$ ${(p.price / 100).toFixed(2)}${p.description ? ` - ${p.description.substring(0, 100)}` : ''}`).join('\n')}
@@ -1304,36 +1306,48 @@ Seu objetivo é:
         },
       });
 
+      // Save the main assistant message first (text response)
+      const savedMessage = await storage.createMessage({
+        conversationId,
+        role: 'assistant',
+        content: assistantMessage,
+        metadata: orderConfirmationCode ? { confirmationCode: orderConfirmationCode } : null,
+      });
+
       // Detect products mentioned in the response using [Product Name] format
       const productRegex = /\[([^\]]+)\]/g;
       const matches = Array.from(assistantMessage.matchAll(productRegex));
       const mentionedProductNames = matches.map(m => m[1].trim());
       
-      // Find matching products and get their first image
-      const productImages: Array<{name: string, imageUrl: string | null, hasMore: boolean}> = [];
+      // For each mentioned product, send a SEPARATE message with image and info
+      // This creates one message bubble per product
+      const productMessages = [];
       for (const productName of mentionedProductNames) {
         const product = activeProducts.find(p => 
           p.name.toLowerCase() === productName.toLowerCase()
         );
+        
         if (product && product.imageUrls && product.imageUrls.length > 0) {
-          productImages.push({
-            name: product.name,
-            imageUrl: product.imageUrls[0],
-            hasMore: product.imageUrls.length > 1
+          // Create product info message with image
+          const productInfo = `${product.name}\nR$ ${(product.price / 100).toFixed(2)}${product.description ? `\n${product.description}` : ''}`;
+          
+          const productMessage = await storage.createMessage({
+            conversationId,
+            role: 'assistant',
+            content: productInfo,
+            metadata: {
+              productImage: product.imageUrls[0], // First image only
+              productId: product.id,
+              productName: product.name,
+              productPrice: product.price,
+            },
           });
+          
+          productMessages.push(productMessage);
         }
       }
 
-      // Save assistant message with product images metadata
-      const savedMessage = await storage.createMessage({
-        conversationId,
-        role: 'assistant',
-        content: assistantMessage,
-        metadata: productImages.length > 0 ? { productImages } : null,
-      });
-
-      // Update conversation timestamp is automatic via database
-
+      // Return the main message (product messages are sent separately via WebSocket)
       res.json(savedMessage);
     } catch (error) {
       console.error('Chat error:', error);

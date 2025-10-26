@@ -257,25 +257,14 @@ export default function ChatWeb() {
                     : "bg-card border rounded-bl-sm"
                 )}
               >
-                {/* Product Images */}
-                {message.role === "assistant" && message.metadata?.productImages && message.metadata.productImages.length > 0 && (
-                  <div className="flex flex-col gap-2">
-                    {message.metadata.productImages.map((product, index) => (
-                      product.imageUrl && (
-                        <div key={index} className="rounded-lg overflow-hidden border bg-background">
-                          <img 
-                            src={product.imageUrl} 
-                            alt={product.name}
-                            className="w-full aspect-square object-cover"
-                          />
-                          {product.hasMore && (
-                            <div className="px-2 py-1 text-xs text-center text-muted-foreground border-t bg-muted/30">
-                              +{" mais imagens disponíveis"}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    ))}
+                {/* Single Product Image (new format - one per message) */}
+                {message.role === "assistant" && message.metadata?.productImage && (
+                  <div className="rounded-lg overflow-hidden border bg-background">
+                    <img 
+                      src={message.metadata.productImage} 
+                      alt={message.metadata.productName || "Produto"}
+                      className="w-full aspect-square object-cover"
+                    />
                   </div>
                 )}
 
