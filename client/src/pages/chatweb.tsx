@@ -258,11 +258,11 @@ export default function ChatWeb() {
                 )}
               >
                 {/* Single Product Image (new format - one per message) */}
-                {message.role === "assistant" && message.metadata?.productImage && (
+                {message.role === "assistant" && message.metadata && 'productImage' in message.metadata && typeof message.metadata.productImage === 'string' && (
                   <div className="rounded-lg overflow-hidden border bg-background">
                     <img 
                       src={message.metadata.productImage} 
-                      alt={message.metadata.productName || "Produto"}
+                      alt={('productName' in message.metadata && typeof (message.metadata as any).productName === 'string' ? (message.metadata as any).productName : "Produto")}
                       className="w-full aspect-square object-cover"
                     />
                   </div>
