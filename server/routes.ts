@@ -1325,7 +1325,9 @@ ${extractedText.substring(0, 15000)}`;
       });
 
       // Check if conversation is in human mode - don't call AI if human took over
+      console.log('🔍 Conversation mode:', conversation.mode);
       if (conversation.mode !== 'ai') {
+        console.log('⚠️ Conversation NOT in AI mode - returning early');
         // Just return the user message without AI response
         return res.json(userMessage);
       }
