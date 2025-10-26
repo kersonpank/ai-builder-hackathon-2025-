@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Users, Phone, Mail, MapPin, ShoppingBag, DollarSign } from "lucide-react";
+import { Users, Phone, Mail, MapPin, ShoppingBag, DollarSign, Building2, User } from "lucide-react";
 import type { Customer } from "@shared/schema";
 
 export default function Customers() {
@@ -105,7 +105,8 @@ export default function Customers() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Documento</TableHead>
                   <TableHead>Contato</TableHead>
                   <TableHead>Localização</TableHead>
                   <TableHead className="text-right">Pedidos</TableHead>
@@ -113,45 +114,85 @@ export default function Customers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
-                    <TableCell className="font-medium">
-                      {customer.name}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Phone className="h-3 w-3 text-muted-foreground" />
-                          <span>{customer.phone}</span>
-                        </div>
-                        {customer.email && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="h-3 w-3" />
-                            <span>{customer.email}</span>
+                {customers.map((customer) => {
+                  const isBusiness = customer.customerType === 'business';
+                  const displayName = isBusiness 
+                    ? customer.companyName || customer.name
+                    : customer.name;
+                  
+                  return (
+                    <TableRow key={customer.id} data-testid={`row-customer-${customer.id}`}>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{displayName}</span>
+                            {isBusiness ? (
+                              <Badge variant="outline" className="text-xs">
+                                <Building2 className="h-3 w-3 mr-1" />
+                                Empresa
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs">
+                                <User className="h-3 w-3 mr-1" />
+                                PF
+                              </Badge>
+                            )}
                           </div>
+                          {isBusiness && customer.tradeName && (
+                            <span className="text-xs text-muted-foreground">
+                              {customer.tradeName}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {customer.cpf && (
+                            <div className="font-mono">{customer.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}</div>
+                          )}
+                          {customer.cnpj && (
+                            <div className="font-mono">{customer.cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}</div>
+                          )}
+                          {!customer.cpf && !customer.cnpj && (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            <span>{customer.phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')}</span>
+                          </div>
+                          {customer.email && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Mail className="h-3 w-3" />
+                              <span>{customer.email}</span>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {customer.shippingAddress ? (
+                          <div className="flex items-start gap-2 text-sm">
+                            <MapPin className="h-3 w-3 text-muted-foreground mt-0.5" />
+                            <div>
+                              {(customer.shippingAddress as any).city}, {(customer.shippingAddress as any).state}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {customer.shippingAddress ? (
-                        <div className="flex items-start gap-2 text-sm">
-                          <MapPin className="h-3 w-3 text-muted-foreground mt-0.5" />
-                          <div>
-                            {(customer.shippingAddress as any).city}, {(customer.shippingAddress as any).state}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="secondary">{customer.totalOrders}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      R$ {(customer.totalSpent / 100).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="secondary">{customer.totalOrders}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        R$ {(customer.totalSpent / 100).toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

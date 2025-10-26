@@ -115,11 +115,31 @@ export const customers = pgTable("customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyId: varchar("company_id").notNull().references(() => companies.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
-  phone: text("phone").notNull(), // unique per company
+  
+  // Contact information
+  phone: text("phone").notNull(), // Normalized phone (only numbers)
+  phoneRaw: text("phone_raw"), // Original phone as provided
   email: text("email"),
+  
+  // Identification documents
+  customerType: text("customer_type").notNull().default("individual"), // 'individual' or 'business'
+  cpf: text("cpf"), // CPF for individuals (normalized, only numbers)
+  cnpj: text("cnpj"), // CNPJ for businesses (normalized, only numbers)
+  
+  // Business customer fields (B2B)
+  companyName: text("company_name"), // Razão social
+  tradeName: text("trade_name"), // Nome fantasia
+  stateRegistration: text("state_registration"), // Inscrição estadual
+  
+  // Address and stats
   shippingAddress: jsonb("shipping_address"), // last known address: {street, complement, neighborhood, city, state, zip}
   totalOrders: integer("total_orders").notNull().default(0),
   totalSpent: integer("total_spent").notNull().default(0), // in cents
+  
+  // Omnichannel tracking
+  firstSeenChannel: text("first_seen_channel"), // 'chatweb', 'whatsapp', 'instagram'
+  channels: text("channels").array().default(sql`ARRAY[]::text[]`), // All channels used
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
