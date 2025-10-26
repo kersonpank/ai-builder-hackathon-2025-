@@ -1440,6 +1440,26 @@ Você tem acesso à função 'add_to_cart' para adicionar produtos ao carrinho.
 Catálogo disponível (${activeProducts.length} produtos):
 ${activeProducts.slice(0, 20).map(p => `- [${p.name}]: R$ ${(p.price / 100).toFixed(2)}${p.description ? ` - ${p.description.substring(0, 100)}` : ''}`).join('\n')}
 
+BUSCA DE ENDEREÇO POR CEP - FUNÇÃO AUTOMÁTICA:
+Você tem acesso à função 'get_address_by_cep' que busca endereços pelo CEP.
+
+Quando o cliente precisar informar endereço:
+1. Pergunte o CEP (8 dígitos)
+2. Use a função 'get_address_by_cep' para buscar automaticamente
+3. Confirme os dados com o cliente (rua, bairro, cidade, estado)
+4. Peça apenas número e complemento (que não vêm no CEP)
+
+Exemplo de uso:
+Cliente: "Meu CEP é 01001-000"
+Você: [usa a função get_address_by_cep com cep "01001000"]
+Sistema retorna: Praça da Sé, Sé, São Paulo, SP
+Você: "Encontrei: Praça da Sé, bairro Sé, São Paulo-SP. Qual o número e complemento?"
+
+IMPORTANTE:
+- CEP deve ter 8 dígitos (pode ser com ou sem hífen, a função aceita ambos)
+- Se o CEP não for encontrado, peça para o cliente verificar e informar novamente
+- Sempre confirme os dados antes de prosseguir
+
 PROCESSAMENTO DE PEDIDOS - FUNÇÃO AUTOMÁTICA:
 Você tem acesso à função 'create_order' que cria pedidos automaticamente no sistema.
 
@@ -1457,7 +1477,7 @@ Para PESSOA FÍSICA:
 - CPF (obrigatório - 11 dígitos)
 - Telefone
 - Email (opcional)
-- Endereço completo (CEP, rua, número, complemento, bairro, cidade, estado)
+- Endereço completo: PRIMEIRO use get_address_by_cep, depois peça número e complemento
 - Método de pagamento
 - Produtos e quantidades
 
@@ -1468,7 +1488,7 @@ Para PESSOA JURÍDICA (empresa):
 - Nome do responsável pela compra
 - Telefone da empresa
 - Email corporativo (opcional)
-- Endereço de entrega
+- Endereço de entrega: PRIMEIRO use get_address_by_cep, depois peça número e complemento
 - Método de pagamento
 - Produtos e quantidades
 
@@ -1591,6 +1611,23 @@ Seu objetivo é:
                 }
               },
               required: ["items"]
+            }
+          }
+        },
+        {
+          type: "function" as const,
+          function: {
+            name: "get_address_by_cep",
+            description: "Busca automaticamente o endereço completo (rua, bairro, cidade, estado) a partir do CEP brasileiro. Use quando o cliente informar o CEP para preencher automaticamente o endereço, economizando tempo.",
+            parameters: {
+              type: "object",
+              properties: {
+                cep: {
+                  type: "string",
+                  description: "CEP brasileiro com 8 dígitos (pode conter ou não o hífen, ex: '01001000' ou '01001-000')"
+                }
+              },
+              required: ["cep"]
             }
           }
         },
@@ -1788,6 +1825,81 @@ Seu objetivo é:
           } catch (error) {
             console.error('Error adding to cart via function call:', error);
             assistantMessage = "Desculpe, não consegui adicionar ao carrinho. Por favor, tente novamente.";
+          }
+        } else if (toolCall.type === "function" && toolCall.function.name === "get_address_by_cep") {
+          try {
+            const functionArgs = JSON.parse(toolCall.function.arguments);
+            const cep = functionArgs.cep.replace(/\D/g, ''); // Remove non-digits
+            
+            console.log('Fetching address for CEP:', cep);
+            
+            // Call ViaCEP API
+            const viacepResponse = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const viacepData = await viacepResponse.json();
+            
+            let functionResult;
+            if (viacepData.erro) {
+              // CEP not found
+              functionResult = {
+                success: false,
+                error: "CEP não encontrado. Verifique se o CEP está correto."
+              };
+            } else {
+              // CEP found successfully
+              functionResult = {
+                success: true,
+                address: {
+                  cep: viacepData.cep,
+                  street: viacepData.logradouro,
+                  complement: viacepData.complemento,
+                  neighborhood: viacepData.bairro,
+                  city: viacepData.localidade,
+                  state: viacepData.uf
+                }
+              };
+            }
+            
+            console.log('ViaCEP result:', functionResult);
+            
+            // Send function result back to the model
+            const functionResultMessages = [
+              ...openaiMessages,
+              completion.choices[0].message,
+              {
+                role: "tool" as const,
+                tool_call_id: toolCall.id,
+                content: JSON.stringify(functionResult)
+              }
+            ];
+            
+            // Get final response from the model
+            const secondCompletion = await openai.chat.completions.create({
+              model: "gpt-4o-mini",
+              messages: functionResultMessages,
+              max_tokens: 500,
+              temperature: 0.8,
+            });
+            
+            assistantMessage = secondCompletion.choices[0].message.content || 
+              (functionResult.success 
+                ? `Encontrei o endereço: ${functionResult.address.street}, ${functionResult.address.neighborhood}, ${functionResult.address.city}-${functionResult.address.state}`
+                : "Não consegui encontrar esse CEP. Por favor, verifique se está correto.");
+            
+            // Save the assistant's response
+            const savedMessage = await storage.createMessage({
+              conversationId,
+              role: 'assistant',
+              content: assistantMessage,
+              metadata: {
+                functionCalled: 'get_address_by_cep',
+                cepData: functionResult
+              },
+            });
+            
+            return res.json(savedMessage);
+          } catch (error) {
+            console.error('Error fetching CEP:', error);
+            assistantMessage = "Desculpe, não consegui buscar o endereço. Por favor, tente novamente ou informe o endereço completo manualmente.";
           }
         } else if (toolCall.type === "function" && toolCall.function.name === "create_order") {
           try {
