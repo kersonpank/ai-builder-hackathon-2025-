@@ -17,6 +17,16 @@ Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for b
 
 ## Recent Changes
 
+**October 26, 2025 - Structured Conversation Flow Design**
+- Implemented comprehensive conversation design with 10 clearly defined stages preventing agent repetition issues
+- Stage 1: Initial Greeting (only first message) → Stage 2: Needs Discovery → Stage 3: Product Presentation → Stage 4: Decision & Cart → Stage 5: Order Review → Stage 6: Customer Type → Stage 7: Customer Data → Stage 8: Delivery Address → Stage 9: Payment → Stage 10: Confirmation
+- Added explicit context-awareness rules: agent must check conversation history before responding
+- Critical rule: "NEVER repeat greeting if there are previous messages" to prevent reset behavior
+- Flexible stage progression: agent can skip stages if customer provides information proactively
+- Clear stage identification logic based on conversation context and history
+- Natural conversation flow while maintaining structured sales funnel progression
+- Improved customer experience with consistent, contextual responses throughout purchase journey
+
 **October 26, 2025 - Automatic Address Lookup via CEP**
 - Integrated ViaCEP API for automatic Brazilian address lookup by postal code (CEP)
 - AI agent can now automatically fetch addresses during checkout: asks for CEP → calls API → confirms data → requests number/complement
