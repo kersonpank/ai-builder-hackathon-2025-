@@ -110,6 +110,24 @@ export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, cre
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type Order = typeof orders.$inferSelect;
 
+// Customers table (clientes)
+export const customers = pgTable("customers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(), // unique per company
+  email: text("email"),
+  shippingAddress: jsonb("shipping_address"), // last known address: {street, complement, neighborhood, city, state, zip}
+  totalOrders: integer("total_orders").notNull().default(0),
+  totalSpent: integer("total_spent").notNull().default(0), // in cents
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true, createdAt: true, updatedAt: true, totalOrders: true, totalSpent: true });
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type Customer = typeof customers.$inferSelect;
+
 // Conversations table (chat sessions)
 export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
