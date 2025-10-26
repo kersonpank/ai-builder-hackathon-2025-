@@ -390,7 +390,7 @@ export default function AuthSwitch() {
           {/* Mobile Header with Logo and Language Selector */}
           <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-blue-500 text-white p-6 text-center relative">
             {/* Language Selector - Mobile */}
-            <div className="absolute top-4 right-4 flex gap-1">
+            <div className="absolute top-2 right-2 flex gap-1">
               {languages.map((lang) => (
                 <button
                   key={lang.code}
