@@ -37,7 +37,7 @@ export type Company = typeof companies.$inferSelect;
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyId: varchar("company_id").notNull().references(() => companies.id, { onDelete: 'cascade' }),
-  email: text("email").notNull(),
+  email: text("email").notNull().unique(), // Email must be globally unique
   password: text("password").notNull(),
   name: text("name").notNull(),
   role: text("role").notNull().default("owner"), // owner, admin, member

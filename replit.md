@@ -17,6 +17,12 @@ Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for b
 
 ## Recent Changes
 
+**October 26, 2025 - Critical Multi-Tenancy Email Fix**
+- **BREAKING CHANGE:** User emails are now globally unique across all companies (previously allowed duplicate emails across different companies)
+- Added UNIQUE constraint on users.email column to prevent cross-tenant login issues
+- Login flow now correctly identifies users by email and automatically loads their associated company
+- This prevents users from logging into wrong companies when the same email existed in multiple tenants
+
 **October 26, 2025 - Human Takeover & Customer Identification**
 - Implemented human takeover system allowing operators to assume control of AI conversations
 - Added conversation modes (ai/human/hybrid) with takenOverBy and takenOverAt tracking
@@ -75,7 +81,7 @@ Preferred communication style: Simple, everyday language.
 **Core Entities:**
 - **Admin Users:** Global access.
 - **Companies:** Tenant entities with status, logo URL, and `cpfCnpj` field (accommodates both CPF and CNPJ).
-- **Users:** Company-specific with roles.
+- **Users:** Company-specific with roles. **IMPORTANT:** Email is globally unique across all companies to prevent cross-tenant authentication issues.
 - **Customers:** Omnichannel customer records with unique identification via `phone` (normalized), `email`, `cpf`, or `cnpj`. Fields include: `customerType` (individual/business), `companyName`, `tradeName`, `stateRegistration`, `firstSeenChannel`, and `channels` array for cross-platform tracking.
 - **Agents:** AI agent configurations (tone, instructions, personality presets, context documents).
 - **Products:** Company catalogs with pricing, metadata, array of up to 3 image URLs, and `status` (draft/published).
