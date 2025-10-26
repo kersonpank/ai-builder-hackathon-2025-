@@ -24,14 +24,14 @@ export default function Dashboard() {
       title: "Adicionar Produto",
       description: "Cadastre novos produtos no catálogo",
       icon: Plus,
-      href: "/products/new",
+      href: "/products",
       variant: "default" as const,
     },
     {
-      title: "Importar CSV",
+      title: "Importação em Massa",
       description: "Importe múltiplos produtos de uma vez",
       icon: Upload,
-      href: "/products/import",
+      href: "/products",
       variant: "outline" as const,
     },
     {
