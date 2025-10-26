@@ -855,6 +855,23 @@ ${extractedText.substring(0, 15000)}`;
     }
   });
 
+  // ============ CUSTOMER ROUTES ============
+
+  // Get all customers
+  app.get("/api/customers", requireAuth, async (req: AuthRequest, res) => {
+    const customers = await storage.getCustomersByCompany(req.user!.companyId!);
+    res.json(customers);
+  });
+
+  // Get single customer
+  app.get("/api/customers/:id", requireAuth, async (req: AuthRequest, res) => {
+    const customer = await storage.getCustomer(req.params.id, req.user!.companyId!);
+    if (!customer) {
+      return res.status(404).json({ error: "Cliente não encontrado" });
+    }
+    res.json(customer);
+  });
+
   // ============ CONVERSATION ROUTES ============
 
   // Get all conversations
@@ -1228,6 +1245,38 @@ Seu objetivo é:
             const order = await storage.createOrder(orderData);
             orderConfirmationCode = order.confirmationCode || null;
             
+            // Save/update customer in the system
+            try {
+              const existingCustomer = await storage.getCustomerByPhone(functionArgs.customerPhone, companyId);
+              
+              if (existingCustomer) {
+                // Update existing customer with new info and stats
+                await storage.updateCustomer(existingCustomer.id, companyId, {
+                  name: functionArgs.customerName,
+                  email: functionArgs.customerEmail || existingCustomer.email,
+                  shippingAddress: functionArgs.shippingAddress,
+                });
+                await storage.updateCustomerStats(existingCustomer.id, total);
+              } else {
+                // Create new customer
+                await storage.createCustomer({
+                  companyId,
+                  name: functionArgs.customerName,
+                  phone: functionArgs.customerPhone,
+                  email: functionArgs.customerEmail || null,
+                  shippingAddress: functionArgs.shippingAddress,
+                });
+                // Update stats for the new customer
+                const newCustomer = await storage.getCustomerByPhone(functionArgs.customerPhone, companyId);
+                if (newCustomer) {
+                  await storage.updateCustomerStats(newCustomer.id, total);
+                }
+              }
+            } catch (customerError) {
+              console.error('Error saving/updating customer:', customerError);
+              // Don't fail the order if customer save fails
+            }
+            
             // Log order creation
             await storage.createApiLog({
               companyId,
@@ -1245,6 +1294,7 @@ Seu objetivo é:
             });
             
             // Send function result back to the model
+            const totalFormatted = (order.total / 100).toFixed(2);
             const functionResultMessages = [
               ...openaiMessages,
               completion.choices[0].message,
@@ -1256,7 +1306,8 @@ Seu objetivo é:
                   confirmationCode: order.confirmationCode,
                   orderId: order.id,
                   total: order.total,
-                  message: "Pedido criado com sucesso!"
+                  totalFormatted: `R$ ${totalFormatted}`,
+                  message: `Pedido criado com sucesso! Total: R$ ${totalFormatted}, Código: ${order.confirmationCode}`
                 })
               }
             ];
@@ -1270,7 +1321,7 @@ Seu objetivo é:
             });
             
             assistantMessage = secondCompletion.choices[0].message.content || 
-              `Pedido confirmado! Seu código de confirmação é: ${order.confirmationCode}`;
+              `Pedido confirmado! Valor total: R$ ${totalFormatted}. Seu código de confirmação é: ${order.confirmationCode}`;
             
           } catch (error) {
             console.error('Error creating order via function call:', error);
