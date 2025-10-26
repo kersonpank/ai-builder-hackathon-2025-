@@ -20,6 +20,7 @@ import Agent from "@/pages/agent";
 import Products from "@/pages/products";
 import ProductDrafts from "@/pages/product-drafts";
 import Orders from "@/pages/orders";
+import Customers from "@/pages/customers";
 import Conversations from "@/pages/conversations";
 import ChatWeb from "@/pages/chatweb";
 import Catalog from "@/pages/catalog";
@@ -145,6 +146,18 @@ function Router() {
             component={() => (
               <AuthenticatedLayout>
                 <Orders />
+              </AuthenticatedLayout>
+            )}
+          />
+        )}
+      </Route>
+      
+      <Route path="/customers">
+        {() => (
+          <ProtectedRoute
+            component={() => (
+              <AuthenticatedLayout>
+                <Customers />
               </AuthenticatedLayout>
             )}
           />
