@@ -1357,7 +1357,42 @@ ${extractedText.substring(0, 15000)}`;
         selectedAgent: analysis.suggestedAgent,
       });
 
-      // Build system prompt
+      // Get conversation history FIRST (before building system prompt)
+      const messages = await storage.getMessagesByConversation(conversationId);
+      // Filter out the user message we just saved (last message) to avoid sending it twice
+      const historyMessages = messages.filter(m => m.id !== userMessage.id);
+      const conversationHistory = historyMessages.slice(-10).map(m => {
+        // Check if message has image in metadata
+        const metadata = m.metadata as { imageUrl?: string } | null;
+        if (metadata?.imageUrl) {
+          // Build full URL for image
+          const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+          const fullImageUrl = metadata.imageUrl.startsWith('http') 
+            ? metadata.imageUrl 
+            : `https://${domain}${metadata.imageUrl}`;
+          
+          return {
+            role: m.role as 'user' | 'assistant',
+            content: [
+              { type: "text" as const, text: m.content },
+              { type: "image_url" as const, image_url: { url: fullImageUrl } }
+            ]
+          };
+        }
+        return {
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        };
+      });
+
+      console.log('📊 Conversation context:', {
+        totalMessages: messages.length,
+        historyMessages: historyMessages.length,
+        historyUsed: conversationHistory.length,
+        currentContent: content.substring(0, 100)
+      });
+
+      // Build system prompt (AFTER loading history)
       const toneInstructions = {
         'Empático': 'Seja caloroso, acolhedor e demonstre empatia genuína. Use linguagem amigável e próxima.',
         'Divertido': 'Seja descontraído, use um tom leve e bem-humorado. Torne a experiência divertida.',
@@ -1419,11 +1454,25 @@ IMPORTANTE - Estilo de comunicação:
 - Leia o histórico antes de perguntar algo
 
 ═══════════════════════════════════════════════════════════════════
+⚠️ REGRA CRÍTICA - CONTEXTO DA CONVERSA
+═══════════════════════════════════════════════════════════════════
+${conversationHistory.length > 0 
+  ? `ATENÇÃO: Esta conversa JÁ TEM ${conversationHistory.length} mensagens anteriores!
+     - NÃO cumprimente novamente
+     - NÃO pergunte "como posso ajudar"
+     - CONTINUE a conversa de onde parou
+     - LEIA as mensagens anteriores para entender o contexto
+     - Mantenha o assunto em andamento`
+  : 'Esta é a PRIMEIRA mensagem da conversa. Cumprimente o cliente de forma amigável.'}
+
+═══════════════════════════════════════════════════════════════════
 🎯 FLUXO SIMPLES DE VENDA (3 PASSOS APENAS)
 ═══════════════════════════════════════════════════════════════════
 
 PASSO 1: PRODUTO
-→ Se é a primeira mensagem: cumprimente
+${conversationHistory.length === 0 
+  ? '→ Como é a primeira mensagem: cumprimente de forma amigável e pergunte como pode ajudar' 
+  : '→ JÁ HÁ HISTÓRICO: Continue a conversa naturalmente, NÃO cumprimente novamente'}
 → Identifique qual produto o cliente quer
 → Mostre produtos usando [Nome do Produto]
 → Quando cliente confirmar interesse, use add_to_cart
@@ -1482,34 +1531,6 @@ Seu objetivo é:
 3. Finalizar pedidos rapidamente (só nome, telefone e endereço)
 4. Criar pedidos imediatamente quando tiver os dados`;
 
-      // Get conversation history (BEFORE saving the current user message to avoid duplication)
-      const messages = await storage.getMessagesByConversation(conversationId);
-      // Filter out the user message we just saved (last message) to avoid sending it twice
-      const historyMessages = messages.filter(m => m.id !== userMessage.id);
-      const conversationHistory = historyMessages.slice(-10).map(m => {
-        // Check if message has image in metadata
-        const metadata = m.metadata as { imageUrl?: string } | null;
-        if (metadata?.imageUrl) {
-          // Build full URL for image
-          const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
-          const fullImageUrl = metadata.imageUrl.startsWith('http') 
-            ? metadata.imageUrl 
-            : `https://${domain}${metadata.imageUrl}`;
-          
-          return {
-            role: m.role as 'user' | 'assistant',
-            content: [
-              { type: "text" as const, text: m.content },
-              { type: "image_url" as const, image_url: { url: fullImageUrl } }
-            ]
-          };
-        }
-        return {
-          role: m.role as 'user' | 'assistant',
-          content: m.content,
-        };
-      });
-
       // Prepare current message with image if present
       let currentMessage: any;
       if (imageUrl) {
@@ -1528,13 +1549,6 @@ Seu objetivo é:
       } else {
         currentMessage = { role: "user" as const, content };
       }
-
-      console.log('📊 Conversation context:', {
-        totalMessages: messages.length,
-        historyMessages: historyMessages.length,
-        historyUsed: conversationHistory.length,
-        currentContent: content.substring(0, 100)
-      });
 
       // Prepare OpenAI messages
       const openaiMessages = [
@@ -2064,8 +2078,10 @@ Seu objetivo é:
       }
 
       if (!assistantMessage || assistantMessage.length === 0) {
-        // If the model didn't return a message, generate a simple fallback
-        assistantMessage = "Olá! Como posso ajudar você hoje?";
+        // If the model didn't return a message, generate a context-aware fallback
+        assistantMessage = conversationHistory.length === 0 
+          ? "Olá! Como posso ajudar você hoje?" 
+          : "Desculpe, pode reformular? Não entendi bem.";
       }
 
       // Log OpenAI prompt for admin monitoring
