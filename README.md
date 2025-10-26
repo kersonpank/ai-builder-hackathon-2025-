@@ -1,5 +1,7 @@
 # Omni.AI - Multi-Tenant AI Customer Service Platform
 
+<img width="1049" height="699" alt="image" src="https://github.com/user-attachments/assets/41c7c3c1-e84d-40a4-b2ea-2bc6379abf45" />
+
 <div align="center">
   <h3>Plataforma B2B SaaS de Atendimento ao Cliente com IA</h3>
   <p>Sistema completo de catálogo conversacional com IA, gestão de pedidos e identificação omnichannel de clientes</p>
