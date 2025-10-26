@@ -20,6 +20,10 @@ interface Message {
       imageUrl: string | null;
       hasMore: boolean;
     }>;
+    attachedImages?: Array<{
+      url: string;
+      caption?: string;
+    }>;
   } | null;
 }
 
@@ -271,6 +275,26 @@ export default function ChatWeb() {
                           )}
                         </div>
                       )
+                    ))}
+                  </div>
+                )}
+
+                {/* Attached Images */}
+                {message.role === "assistant" && message.metadata?.attachedImages && message.metadata.attachedImages.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    {message.metadata.attachedImages.map((image, index) => (
+                      <div key={index} className="rounded-lg overflow-hidden border bg-background">
+                        <img 
+                          src={image.url} 
+                          alt={image.caption || "Imagem enviada pelo agente"}
+                          className="w-full object-cover max-h-64"
+                        />
+                        {image.caption && (
+                          <div className="px-3 py-2 text-sm text-muted-foreground border-t bg-muted/30">
+                            {image.caption}
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 )}
