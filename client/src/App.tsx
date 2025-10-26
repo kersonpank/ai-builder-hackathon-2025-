@@ -22,6 +22,7 @@ import ProductDrafts from "@/pages/product-drafts";
 import Orders from "@/pages/orders";
 import Customers from "@/pages/customers";
 import Conversations from "@/pages/conversations";
+import Analytics from "@/pages/analytics";
 import ChatWeb from "@/pages/chatweb";
 import Catalog from "@/pages/catalog";
 import Checkout from "@/pages/checkout";
@@ -171,6 +172,18 @@ function Router() {
             component={() => (
               <AuthenticatedLayout>
                 <Conversations />
+              </AuthenticatedLayout>
+            )}
+          />
+        )}
+      </Route>
+      
+      <Route path="/analytics">
+        {() => (
+          <ProtectedRoute
+            component={() => (
+              <AuthenticatedLayout>
+                <Analytics />
               </AuthenticatedLayout>
             )}
           />
