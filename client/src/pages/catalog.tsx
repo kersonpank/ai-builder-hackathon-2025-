@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ShoppingCart, Package, Plus, Minus, Trash2, Search, Store } from "lucide-react";
+import { ShoppingCart, Package, Plus, Minus, Trash2, Search, Store, MessageCircle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@shared/schema";
@@ -149,7 +149,7 @@ export default function Catalog() {
                           </Card>
                         ))}
                       </div>
-                      <div className="border-t pt-4 space-y-4">
+                      <div className="border-t pt-4 space-y-3">
                         <div className="flex justify-between items-center text-lg font-bold">
                           <span>Total:</span>
                           <span>R$ {(total / 100).toFixed(2)}</span>
@@ -161,6 +161,16 @@ export default function Catalog() {
                           data-testid="button-checkout"
                         >
                           Finalizar Compra
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          size="lg"
+                          onClick={() => setLocation(`/chat/${companyId}`)}
+                          data-testid="button-finish-with-agent"
+                        >
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Finalizar com o Agente
                         </Button>
                       </div>
                     </>
@@ -278,6 +288,17 @@ export default function Catalog() {
           </div>
         )}
       </main>
+
+      {/* Floating Chat Button */}
+      <Button
+        size="lg"
+        className="fixed bottom-6 right-6 h-14 rounded-full shadow-lg z-40"
+        onClick={() => setLocation(`/chat/${companyId}`)}
+        data-testid="button-floating-chat"
+      >
+        <MessageCircle className="w-5 h-5 mr-2" />
+        Falar com Agente
+      </Button>
     </div>
   );
 }
