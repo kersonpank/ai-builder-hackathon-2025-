@@ -17,6 +17,18 @@ Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for b
 
 ## Recent Changes
 
+**October 26, 2025 - Human Takeover & Customer Identification**
+- Implemented human takeover system allowing operators to assume control of AI conversations
+- Added conversation modes (ai/human/hybrid) with takenOverBy and takenOverAt tracking
+- Created conversations-monitor page for operators to view active conversations in real-time
+- Operators can click "Assumir Conversa" to take over and respond directly to customers
+- Backend skips OpenAI calls when conversation.mode !== 'ai'
+- Added customerId field to conversations table to link chats to identified customers
+- When agent creates order, conversation is automatically linked to customer record
+- Conversations now display actual customer names instead of "Cliente Anônimo"
+- Customer data persisted even for non-purchasing users to build conversation history
+- Operator messages display with distinct avatar (headphones icon) and background color
+
 **October 26, 2025 - Omnichannel Customer Identity & B2B Support**
 - Implemented omnichannel customer identification system using phone, email, CPF, and CNPJ
 - Added phone normalization utility handling Brazilian formats (carrier codes, international prefixes)

@@ -152,6 +152,7 @@ export type Customer = typeof customers.$inferSelect;
 export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   companyId: varchar("company_id").notNull().references(() => companies.id, { onDelete: 'cascade' }),
+  customerId: varchar("customer_id").references(() => customers.id, { onDelete: 'set null' }), // link to identified customer
   channel: text("channel").notNull(), // "chatweb", "whatsapp", "instagram"
   customerName: text("customer_name"),
   customerPhone: text("customer_phone"),

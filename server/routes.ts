@@ -1533,9 +1533,16 @@ Seu objetivo é:
                   tradeName: functionArgs.tradeName || existingCustomer.tradeName,
                 });
                 await storage.updateCustomerStats(existingCustomer.id, total);
+                
+                // Link conversation to identified customer
+                await storage.updateConversation(conversationId, {
+                  customerId: existingCustomer.id,
+                  customerName: functionArgs.customerName,
+                  customerPhone: functionArgs.customerPhone,
+                });
               } else {
                 // Create new customer
-                await storage.createCustomer({
+                const newCustomer = await storage.createCustomer({
                   companyId,
                   name: functionArgs.customerName,
                   phone: functionArgs.customerPhone,
@@ -1550,13 +1557,15 @@ Seu objetivo é:
                   channels: ['chatweb'],
                 });
                 // Update stats for the new customer
-                const newCustomer = await storage.findCustomerByIdentifiers(companyId, {
-                  phone: functionArgs.customerPhone,
-                  cpf: functionArgs.cpf,
-                  cnpj: functionArgs.cnpj,
-                });
                 if (newCustomer) {
                   await storage.updateCustomerStats(newCustomer.id, total);
+                  
+                  // Link conversation to newly created customer
+                  await storage.updateConversation(conversationId, {
+                    customerId: newCustomer.id,
+                    customerName: functionArgs.customerName,
+                    customerPhone: functionArgs.customerPhone,
+                  });
                 }
               }
             } catch (customerError) {
