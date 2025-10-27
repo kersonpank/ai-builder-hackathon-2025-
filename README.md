@@ -4,7 +4,7 @@
 
 <div align="center">
   <h3>Plataforma B2B SaaS de Atendimento ao Cliente com IA</h3>
-  <p>Sistema completo de catálogo conversacional com IA, gestão de pedidos e identificação omnichannel de clientes</p>
+  <p>Sistema completo de catálogo conversacional com IA, gestão de pedidos, suporte e identificação omnichannel de clientes</p>
 </div>
 
 ---
@@ -39,7 +39,9 @@
 - **Suporte B2B e B2C**: Atende tanto pessoas físicas quanto jurídicas
 
 ---
+<img width="784" height="717" alt="image" src="https://github.com/user-attachments/assets/d1ec15a3-0630-450d-838e-e67ea1e0edb9" />
 
+---
 ## ✨ Funcionalidades Principais
 
 ### 🤖 Agente de IA Conversacional
