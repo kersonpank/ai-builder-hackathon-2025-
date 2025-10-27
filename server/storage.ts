@@ -71,6 +71,19 @@ export interface IStorage {
     cpf?: string;
     cnpj?: string;
   }): Promise<Customer | undefined>;
+  findOrCreateCustomer(companyId: string, data: {
+    name: string;
+    phone: string;
+    email?: string | null;
+    cpf?: string | null;
+    cnpj?: string | null;
+    customerType?: string;
+    companyName?: string | null;
+    tradeName?: string | null;
+    stateRegistration?: string | null;
+    shippingAddress?: any;
+    channel: string;
+  }): Promise<Customer>;
   createCustomer(data: InsertCustomer): Promise<Customer>;
   updateCustomer(id: string, companyId: string, data: Partial<InsertCustomer>): Promise<Customer | undefined>;
   updateCustomerStats(id: string, orderTotal: number): Promise<void>;
@@ -400,6 +413,75 @@ export class DbStorage implements IStorage {
     
     const result = await db.insert(customers).values(normalizedData).returning();
     return result[0];
+  }
+
+  async findOrCreateCustomer(companyId: string, data: {
+    name: string;
+    phone: string;
+    email?: string | null;
+    cpf?: string | null;
+    cnpj?: string | null;
+    customerType?: string;
+    companyName?: string | null;
+    tradeName?: string | null;
+    stateRegistration?: string | null;
+    shippingAddress?: any;
+    channel: string;
+  }): Promise<Customer> {
+    // Try to find existing customer by identifiers
+    const existingCustomer = await this.findCustomerByIdentifiers(companyId, {
+      phone: data.phone,
+      email: data.email || undefined,
+      cpf: data.cpf || undefined,
+      cnpj: data.cnpj || undefined,
+    });
+
+    if (existingCustomer) {
+      // Customer exists - update their data and add channel if new
+      const updatedChannels = existingCustomer.channels || [];
+      if (!updatedChannels.includes(data.channel)) {
+        updatedChannels.push(data.channel);
+      }
+
+      const updateData: Partial<InsertCustomer> = {
+        name: data.name, // Update name in case it changed
+        email: data.email || existingCustomer.email,
+        shippingAddress: data.shippingAddress || existingCustomer.shippingAddress,
+        channels: updatedChannels,
+      };
+
+      // Update B2B fields if provided
+      if (data.customerType === 'business') {
+        updateData.customerType = 'business';
+        updateData.companyName = data.companyName || existingCustomer.companyName;
+        updateData.tradeName = data.tradeName || existingCustomer.tradeName;
+        updateData.cnpj = data.cnpj || existingCustomer.cnpj;
+        updateData.stateRegistration = data.stateRegistration || existingCustomer.stateRegistration;
+      }
+
+      const updated = await this.updateCustomer(existingCustomer.id, companyId, updateData);
+      return updated!;
+    }
+
+    // Customer doesn't exist - create new one
+    const newCustomerData: InsertCustomer = {
+      companyId,
+      name: data.name,
+      phone: data.phone,
+      phoneRaw: data.phone,
+      email: data.email || null,
+      customerType: data.customerType || 'individual',
+      cpf: data.cpf || null,
+      cnpj: data.cnpj || null,
+      companyName: data.companyName || null,
+      tradeName: data.tradeName || null,
+      stateRegistration: data.stateRegistration || null,
+      shippingAddress: data.shippingAddress || null,
+      firstSeenChannel: data.channel,
+      channels: [data.channel],
+    };
+
+    return await this.createCustomer(newCustomerData);
   }
 
   async updateCustomer(id: string, companyId: string, data: Partial<InsertCustomer>): Promise<Customer | undefined> {

@@ -1962,6 +1962,37 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
                   const order = await storage.createOrder(orderData);
                   orderConfirmationCode = order.confirmationCode || null;
                   
+                  // Save/update customer with omnichannel deduplication
+                  try {
+                    const currentConversation = await storage.getConversation(conversationId);
+                    const channel = currentConversation?.channel || 'chatweb';
+                    
+                    const customer = await storage.findOrCreateCustomer(companyId, {
+                      name: functionArgs.customerName,
+                      phone: functionArgs.customerPhone,
+                      email: functionArgs.customerEmail || null,
+                      cpf: functionArgs.cpf || null,
+                      cnpj: functionArgs.cnpj || null,
+                      customerType: functionArgs.customerType || 'individual',
+                      companyName: functionArgs.companyName || null,
+                      tradeName: functionArgs.tradeName || null,
+                      stateRegistration: functionArgs.stateRegistration || null,
+                      shippingAddress: functionArgs.shippingAddress,
+                      channel: channel,
+                    });
+                    
+                    await storage.updateCustomerStats(customer.id, total);
+                    await storage.updateConversation(conversationId, {
+                      customerId: customer.id,
+                      customerName: functionArgs.customerName,
+                      customerPhone: functionArgs.customerPhone,
+                    });
+                    
+                    console.log(`✅ Customer identified/created: ${customer.name} (${customer.id}) via ${channel}`);
+                  } catch (customerError) {
+                    console.error('Error saving/updating customer:', customerError);
+                  }
+                  
                   assistantMessage = `Pedido confirmado! Total: R$ ${(total / 100).toFixed(2)}, Código: ${orderConfirmationCode}. Agradecemos pela sua compra!`;
                   
                   const savedMessage = await storage.createMessage({
@@ -2050,64 +2081,38 @@ SEJA DIRETO, NÃO ENROLE, NÃO PEÇA CONFIRMAÇÕES DESNECESSÁRIAS!`;
             const order = await storage.createOrder(orderData);
             orderConfirmationCode = order.confirmationCode || null;
             
-            // Save/update customer in the system with deduplication
+            // Save/update customer in the system with omnichannel deduplication
             try {
-              // Try to find existing customer by any identifier
-              const existingCustomer = await storage.findCustomerByIdentifiers(companyId, {
+              // Get conversation to determine channel
+              const currentConversation = await storage.getConversation(conversationId);
+              const channel = currentConversation?.channel || 'chatweb';
+              
+              // Find or create customer (automatically deduplicates across phone, email, CPF, CNPJ)
+              const customer = await storage.findOrCreateCustomer(companyId, {
+                name: functionArgs.customerName,
                 phone: functionArgs.customerPhone,
-                email: functionArgs.customerEmail,
-                cpf: functionArgs.cpf,
-                cnpj: functionArgs.cnpj,
+                email: functionArgs.customerEmail || null,
+                cpf: functionArgs.cpf || null,
+                cnpj: functionArgs.cnpj || null,
+                customerType: functionArgs.customerType || 'individual',
+                companyName: functionArgs.companyName || null,
+                tradeName: functionArgs.tradeName || null,
+                stateRegistration: functionArgs.stateRegistration || null,
+                shippingAddress: functionArgs.shippingAddress,
+                channel: channel, // Track which channel this interaction came from
               });
               
-              if (existingCustomer) {
-                // Update existing customer with new info and stats
-                await storage.updateCustomer(existingCustomer.id, companyId, {
-                  name: functionArgs.customerName,
-                  email: functionArgs.customerEmail || existingCustomer.email,
-                  shippingAddress: functionArgs.shippingAddress,
-                  customerType: functionArgs.customerType || 'individual',
-                  cpf: functionArgs.cpf || existingCustomer.cpf,
-                  cnpj: functionArgs.cnpj || existingCustomer.cnpj,
-                  companyName: functionArgs.companyName || existingCustomer.companyName,
-                  tradeName: functionArgs.tradeName || existingCustomer.tradeName,
-                });
-                await storage.updateCustomerStats(existingCustomer.id, total);
-                
-                // Link conversation to identified customer
-                await storage.updateConversation(conversationId, {
-                  customerId: existingCustomer.id,
-                  customerName: functionArgs.customerName,
-                  customerPhone: functionArgs.customerPhone,
-                });
-              } else {
-                // Create new customer
-                const newCustomer = await storage.createCustomer({
-                  companyId,
-                  name: functionArgs.customerName,
-                  phone: functionArgs.customerPhone,
-                  email: functionArgs.customerEmail || null,
-                  shippingAddress: functionArgs.shippingAddress,
-                  customerType: functionArgs.customerType || 'individual',
-                  cpf: functionArgs.cpf || null,
-                  cnpj: functionArgs.cnpj || null,
-                  companyName: functionArgs.companyName || null,
-                  tradeName: functionArgs.tradeName || null,
-                  firstSeenChannel: 'chatweb',
-                  channels: ['chatweb'],
-                });
-                // Update stats for the new customer
-                if (newCustomer) {
-                  await storage.updateCustomerStats(newCustomer.id, total);
-                  
-                  // Link conversation to newly created customer
-                  await storage.updateConversation(conversationId, {
-                    customerId: newCustomer.id,
-                    customerName: functionArgs.customerName,
-                    customerPhone: functionArgs.customerPhone,
-                  });
-                }
-              }
+              // Update customer stats
+              await storage.updateCustomerStats(customer.id, total);
+              
+              // Link conversation to identified customer
+              await storage.updateConversation(conversationId, {
+                customerId: customer.id,
+                customerName: functionArgs.customerName,
+                customerPhone: functionArgs.customerPhone,
+              });
+              
+              console.log(`✅ Customer identified/created: ${customer.name} (${customer.id}) via ${channel}`);
             } catch (customerError) {
               console.error('Error saving/updating customer:', customerError);
               // Don't fail the order if customer save fails
