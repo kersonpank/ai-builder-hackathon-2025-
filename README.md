@@ -8,6 +8,9 @@
 </div>
 
 ---
+<img width="1901" height="916" alt="image" src="https://github.com/user-attachments/assets/880ccfaf-5667-4c01-ab92-6b3729e3ee01" />
+
+---
 
 ## 📋 Índice
 
