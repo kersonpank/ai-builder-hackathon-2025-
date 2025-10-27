@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -156,7 +156,13 @@ export const customers = pgTable("customers", {
   
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  // Unique constraints per company to prevent duplicate customers
+  phoneIdx: uniqueIndex("customers_company_phone_idx").on(table.companyId, table.phone),
+  emailIdx: uniqueIndex("customers_company_email_idx").on(table.companyId, table.email).where(sql`${table.email} IS NOT NULL`),
+  cpfIdx: uniqueIndex("customers_company_cpf_idx").on(table.companyId, table.cpf).where(sql`${table.cpf} IS NOT NULL`),
+  cnpjIdx: uniqueIndex("customers_company_cnpj_idx").on(table.companyId, table.cnpj).where(sql`${table.cnpj} IS NOT NULL`),
+}));
 
 export const insertCustomerSchema = createInsertSchema(customers).omit({ id: true, createdAt: true, updatedAt: true, totalOrders: true, totalSpent: true });
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
