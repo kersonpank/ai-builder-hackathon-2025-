@@ -82,6 +82,20 @@ Omni.AI is a B2B SaaS platform offering AI-powered customer service agents for b
 - Customer data persisted even for non-purchasing users to build conversation history
 - Operator messages display with distinct avatar (headphones icon) and background color
 
+**October 27, 2025 - Omnichannel Customer Deduplication & Auto-Linking**
+- **MAJOR:** Implemented `findOrCreateCustomer` function that intelligently prevents duplicate customer records
+- Automatic customer deduplication across all identifiers: phone (normalized), email (lowercase), CPF (digits only), CNPJ (digits only)
+- Priority-based matching: CPF/CNPJ (strongest) → email → phone number
+- Added unique database indexes per company: `(companyId, phone)`, `(companyId, email)`, `(companyId, cpf)`, `(companyId, cnpj)`
+- Partial indexes for optional fields (email, CPF, CNPJ) only enforce uniqueness when NOT NULL
+- Automatic channel tracking: new function adds channel to customer's `channels` array if not already present
+- **Order creation now auto-links to customer**: When order created → customer found/created → customerId linked to conversation
+- Customer identification happens transparently during checkout - no manual intervention needed
+- Console logging: `✅ Customer identified/created: ${name} (${id}) via ${channel}` for tracking
+- All phone numbers normalized using `normalizePhone()` to handle Brazilian formats (11987654321, +5511987654321, etc.)
+- CPF/CNPJ normalized using `normalizeCPF()` and `normalizeCNPJ()` with check-digit validation
+- Customer data persisted even for anonymous shoppers to build comprehensive cross-channel profiles
+
 **October 26, 2025 - Omnichannel Customer Identity & B2B Support**
 - Implemented omnichannel customer identification system using phone, email, CPF, and CNPJ
 - Added phone normalization utility handling Brazilian formats (carrier codes, international prefixes)

@@ -26,22 +26,34 @@ export function normalizePhone(phone: string | null | undefined): string {
   
   // Remove carrier prefixes (021, 014, 015, 031, etc) - typically 3 digits starting with 0
   // These appear before the area code in some formats
-  if (cleaned.length > 11 && cleaned.startsWith('0')) {
-    // Check for carrier prefix pattern (0XX where XX are digits)
+  // IMPORTANT: Only remove if it's truly a carrier prefix, not the interurban "0" + DDD or "00" international
+  // Carrier prefix: 021, 014, 015, 031 (3 digits: 0 + non-zero + digit) followed by DDD + number
+  // Interurban: 0 + DDD + number (1 zero + 11 digits = 12 total)
+  // International: 00 + rest
+  if (cleaned.length >= 13 && cleaned.startsWith('0')) {
+    // Check for carrier prefix pattern (0XX where the second digit is NOT zero)
     const possibleCarrierPrefix = cleaned.substring(0, 3);
-    if (/^0\d{2}$/.test(possibleCarrierPrefix)) {
-      // Remove the 3-digit carrier prefix
-      cleaned = cleaned.substring(3);
+    if (/^0[1-9]\d$/.test(possibleCarrierPrefix)) {
+      // Verify it's followed by a valid phone (10-11 digits)
+      const afterPrefix = cleaned.substring(3);
+      if (afterPrefix.length >= 10) {
+        // This is a real carrier prefix, remove it
+        cleaned = afterPrefix;
+      }
     }
   }
   
   // Remove double leading zeros (00) sometimes used for international calling
-  while (cleaned.startsWith('00') && cleaned.length > 11) {
+  if (cleaned.startsWith('00') && cleaned.length >= 12) {
     cleaned = cleaned.substring(2);
   }
   
   // Remove single leading zero from area code if present
-  while (cleaned.startsWith('0') && cleaned.length > 11) {
+  // This handles the common "0 + DDD + number" format (e.g., "011987654321" -> "11987654321")
+  // IMPORTANT: This is the interurban dialing prefix, always remove it for normalization
+  if (cleaned.startsWith('0') && cleaned.length === 12) {
+    cleaned = cleaned.substring(1);
+  } else if (cleaned.startsWith('0') && cleaned.length === 11) {
     cleaned = cleaned.substring(1);
   }
   
