@@ -256,7 +256,8 @@ O sistema estará disponível em `http://localhost:5000`
 5. Cliente demonstra interesse: "Quero o produto X"
 6. IA chama função `add_to_cart` automaticamente
 7. Produto aparece no carrinho
-8. Cliente pode ir ao catálogo e ver carrinho sincronizado
+8. User pode finalizar e receber a forma de pagamento 
+9. Cliente pode ir ao catálogo e ver carrinho sincronizado
 
 ### Fluxo 2: Cliente Navega Catálogo e Finaliza no Chat
 
